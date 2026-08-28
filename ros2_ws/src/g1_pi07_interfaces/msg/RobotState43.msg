@@ -1,0 +1,9 @@
+std_msgs/Header header
+uint64 sequence
+string[43] name
+float64[43] position
+float64[43] velocity
+float64[43] effort
+bool[43] validity_mask
+sensor_msgs/Imu imu
+bool imu_valid

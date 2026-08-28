@@ -1,0 +1,9 @@
+std_msgs/Header header
+uint64 sequence
+uint64 source_timestamp_ns
+bool left_valid
+bool right_valid
+geometry_msgs/Pose left_wrist
+geometry_msgs/Pose right_wrist
+float32[63] left_hand_keypoints
+float32[63] right_hand_keypoints

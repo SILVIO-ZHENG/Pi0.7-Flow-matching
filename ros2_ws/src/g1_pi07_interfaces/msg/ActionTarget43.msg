@@ -1,0 +1,12 @@
+std_msgs/Header header
+string episode_id
+uint64 step_index
+uint64 source_state_sequence
+builtin_interfaces/Time source_state_stamp
+builtin_interfaces/Time compute_started
+builtin_interfaces/Time compute_finished
+builtin_interfaces/Time sent
+string source
+string[43] name
+float64[43] position
+bool[43] validity_mask

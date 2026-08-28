@@ -1,0 +1,78 @@
+state_adapter:
+  ros__parameters:
+    joint_state_topic: /joint_states
+    imu_topic: /imu/data
+    output_topic: /robot/state43
+    max_imu_age_ms: 50.0
+
+xr_udp_bridge:
+  ros__parameters:
+    bind_host: 127.0.0.1
+    bind_port: 7001
+    output_topic: /xr/hand_targets
+    frame_id: torso_link
+    max_packet_bytes: 65535
+    max_packets_per_tick: 32
+    use_source_timestamp: false
+    source_clock_offset_ns: 0
+    max_clock_skew_ms: 100.0
+    position_scale: 1.0
+    xr_to_robot_translation: [0.0, 0.0, 0.0]
+    xr_to_robot_quaternion_xyzw: [0.0, 0.0, 0.0, 1.0]
+
+episode_recorder:
+  ros__parameters:
+    state_topic: /robot/state43
+    action_topic: /control/action_target43
+    command_topic: /g1/upper_body_position_command
+    head_camera_topic: /camera/head/image_raw/compressed
+    left_wrist_camera_topic: /camera/left_wrist/image_raw/compressed
+    right_wrist_camera_topic: /camera/right_wrist/image_raw/compressed
+    output_root: ./data/raw
+    episode_id: replace_me
+    task: Use both hands to pick up the box and place it in the target area.
+    subtask: ""
+    success_label: unknown
+    failure_reason: ""
+    fps: 20.0
+    max_state_delta_ms: 15.0
+    max_camera_delta_ms: 40.0
+    alignment_wait_ms: 60.0
+    max_pending_actions: 256
+
+teleop_action:
+  ros__parameters:
+    state_topic: /robot/state43
+    xr_topic: /xr/hand_targets
+    action_topic: /control/action_target43
+    ik_service: /compute_ik
+    ik_frame: torso_link
+    left_group: left_arm
+    right_group: right_arm
+    ik_timeout_s: 0.08
+    max_state_age_ms: 100.0
+    max_xr_age_ms: 100.0
+    episode_id: teleop
+    # Replace these unit ranges with the calibration measured on the target Dex3-1 pair.
+    left_hand_lower: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    left_hand_upper: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    left_hand_invert: [false, false, false, false, false, false, false]
+    right_hand_lower: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    right_hand_upper: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    right_hand_invert: [false, false, false, false, false, false, false]
+
+robot_command_adapter:
+  ros__parameters:
+    state_topic: /robot/state43
+    action_topic: /control/action_target43
+    command_topic: /g1/upper_body_position_command
+    stable_topic: /low_level/stable
+    estop_topic: /safety/estop
+    enable_robot_commands: false
+    limits_confirmed: false
+    max_state_age_ms: 100.0
+    max_action_age_ms: 100.0
+    max_source_state_age_ms: 250.0
+    max_step_rad: 0.15
+    lower_limits: [-3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, -3.14, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    upper_limits: [3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 3.14, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]

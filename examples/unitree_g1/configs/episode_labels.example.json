@@ -1,0 +1,35 @@
+{
+  "episodes": [
+    {
+      "source_episode_id": "20260828_pick_box_0001",
+      "success": true,
+      "memory": "The box is centred between the two wrists.",
+      "next_memory": "Close both hands symmetrically before lifting.",
+      "segments": [
+        {
+          "start_frame": 0,
+          "end_frame": 59,
+          "subtask": "Reach both hands towards the box"
+        },
+        {
+          "start_frame": 60,
+          "end_frame": 99,
+          "subtask": "Grasp the box with both hands"
+        },
+        {
+          "start_frame": 100,
+          "end_frame": 179,
+          "subtask": "Lift and place the box in the target area"
+        }
+      ]
+    }
+  ],
+  "intervals": [
+    {
+      "source_episode_id": "20260828_pick_box_0001",
+      "start_frame": 82,
+      "end_frame": 88,
+      "reason": "human correction"
+    }
+  ]
+}
