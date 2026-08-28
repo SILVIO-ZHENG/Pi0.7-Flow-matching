@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>g1_pi07_bringup</name>
+  <version>0.1.0</version>
+  <description>ROS2 collection and teleoperation nodes for Unitree G1 43-DoF.</description>
+  <maintainer email="noreply@example.com">OpenPI G1 Project</maintainer>
+  <license>Apache-2.0</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>g1_pi07_interfaces</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ros2bag</exec_depend>
+  <exec_depend>rosbag2_storage_mcap</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+</package>

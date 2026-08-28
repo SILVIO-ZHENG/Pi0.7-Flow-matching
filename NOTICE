@@ -1,0 +1,17 @@
+Unitree G1 43-DoF pi0.7-inspired OpenPI reproduction
+
+This product includes software developed by Physical Intelligence and distributed
+through the OpenPI project (https://github.com/Physical-Intelligence/openpi).
+
+This repository was selectively derived from:
+https://github.com/Knight1112D/CBC_Pi0.7_Openpi
+source revision: 4e9878feefd3192d2395443135651021b1832df3
+
+The repository includes project-specific Unitree G1 43-DoF data, teleoperation,
+LeRobot, joint-objective, RTC, and deployment integrations. This is an
+unofficial research reproduction and is not an official Physical Intelligence
+pi0.7 release.
+
+See LICENSE, LICENSE_GEMMA.txt, UPSTREAM_OPENPI_README.md,
+ACKNOWLEDGEMENTS.md, and individual source headers for applicable terms and
+attribution.
