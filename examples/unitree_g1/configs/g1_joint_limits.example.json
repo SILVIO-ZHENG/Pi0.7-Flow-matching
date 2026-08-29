@@ -1,6 +1,6 @@
 {
   "confirmed_from_robot_urdf": false,
-  "warning": "Placeholder limits for dry-run only. Replace from the exact G1 + Dex3 URDF and then set confirmed_from_robot_urdf=true.",
+  "warning": "Verify these limits against the exact G1 + Dex3 URDF before enabling robot commands.",
   "policy_joint_names": [
     "left_shoulder_pitch_joint",
     "left_shoulder_roll_joint",

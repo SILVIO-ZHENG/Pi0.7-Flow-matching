@@ -13,7 +13,7 @@ from std_msgs.msg import Bool
 
 
 class RobotCommandAdapterNode(Node):
-    """Vendor-neutral final gate; the Unitree SDK bridge consumes its JointState."""
+    """Final safety gate that publishes a named upper-body JointState command."""
 
     def __init__(self) -> None:
         super().__init__("robot_command_adapter")

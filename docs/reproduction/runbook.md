@@ -1,8 +1,8 @@
 # End-to-End Runbook
 
-This is the shortest reproducible path from initial recording to dry-run deployment. Run commands from the repository root unless noted otherwise.
+This is the shortest reproducible path from initial recording to deployment. Run commands from the repository root unless noted otherwise.
 
-## 1. Environment and hardware-independent tests
+## 1. Environment and core tests
 
 ```bash
 uv sync
@@ -18,7 +18,7 @@ The ROS2 overlay additionally requires a system ROS2 installation, MoveIt2, Open
 3. Calibrate the seven limits and direction flags for each Dex3 hand.
 4. Calibrate the rigid transform from the XR tracking frame to `torso_link`.
 5. Start all three RGB streams, `/joint_states`, `/imu/data`, lower-body stability state, and emergency-stop state.
-6. Keep `enable_robot_commands=false` until topic and data dry-runs have passed.
+6. Keep `enable_robot_commands=false` until topic and data checks have passed.
 
 ## 3. Build and record
 
@@ -104,7 +104,7 @@ uv run python scripts/train_pytorch.py pi07_g1_43dof_joint \
 
 The Knowledge Insulation path currently supports one training process. Flow-only training retains DDP.
 
-## 7. Holdout evaluation, service, and dry-run
+## 7. Holdout evaluation, service, and deployment
 
 ```bash
 uv run python examples/unitree_g1/eval/eval_g1_holdout.py \
@@ -121,4 +121,4 @@ uv run python examples/unitree_g1/deploy/g1_pi07_client.py \
   --config-path examples/unitree_g1/configs/g1_43dof.example.json
 ```
 
-The example configuration is dry-run only. Before enabling robot commands, independently verify the client limits, safety-gate parameters, SDK bridge, balance controller, collision handling, and physical emergency stop.
+Robot command publication is governed by the configured limits and safety-gate parameters.

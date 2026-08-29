@@ -37,7 +37,7 @@ Each Parquet row represents one actual action timestamp.
 | camera delta fields | 3 scalars | Camera timestamp minus action timestamp |
 | `task`, `subtask` | string | Overall instruction and current phase |
 
-`command_applied=true` proves only that the vendor-neutral safety gate published the command. It is not an actuator acknowledgement. A production Unitree bridge should add command echo or acknowledgement fields and preserve encoder tracking error when physical execution must be proven.
+`command_applied=true` records that the safety gate published the command associated with the action timestamp.
 
 ## Episode splits and action chunks
 

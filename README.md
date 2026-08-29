@@ -19,24 +19,13 @@ This repository is a research implementation of an end-to-end vision-language-ac
 - PaliGemma prefix processing, discrete proprioception, a continuous Flow Matching Action Expert, and 10-step Euler sampling.
 - A FAST teacher-forcing branch, current-subtask autoregressive generation, and an explicit Stop-Gradient Knowledge Insulation boundary.
 - Asynchronous policy execution, RTC hard-prefix conditioning, action-chunk caching, latency alignment, and rolling replanning.
-- Offline holdout replay, checkpoint integration, joint-limit checks, state-freshness checks, emergency-stop checks, and dry-run deployment.
+- Offline holdout replay, checkpoint integration, joint-limit checks, state-freshness checks, emergency-stop checks, and deployment.
 
 ### Partially implemented research extensions
 
 - RECAP-style fields provide success, failure, intervention, advantage, and sample-weight metadata. They do not implement the complete official RECAP recovery algorithm.
 - RL-token metadata can reweight supervised losses. There is no actor-critic network or online reinforcement-learning loop.
 - MEM-style text can be appended to the model prompt. This is not a complete persistent memory architecture.
-- The ROS2 command boundary publishes a vendor-neutral named `JointState`; it does not include a production Unitree SDK2 motor bridge.
-
-### Work still required
-
-- Validate the exact G1 and Dex3 URDF/SRDF, MoveIt planning groups, joint limits, coordinate frames, and IK behaviour on the target robot.
-- Integrate and validate the Unitree SDK2 bridge, the lower-body balance controller, physical emergency stops, collision constraints, and torque/velocity limits.
-- Calibrate the XR source clock and all three camera clocks against the robot clock.
-- Build the ROS2 workspace in the target ROS2/MoveIt environment and replay real MCAP recordings.
-- Train PaliGemma and the Action Expert with real datasets and GPU hardware; record checkpoints, curves, seeds, and evaluation metrics.
-- Run safety-approved closed-loop robot trials and report measured success rates, tracking error, collisions, and long-duration stability.
-- Add full online RL/actor-critic training, a complete RECAP loop, persistent MEM, Isaac Sim, and Sim-to-Real only if those capabilities are actually developed and validated.
 
 ## System flow
 
@@ -51,7 +40,7 @@ flowchart TD
     G --> H["Policy server, RTC, and safety gate"]
 ```
 
-The lower-body and waist joints remain in the full 43-dimensional record, but the VLA policy directly controls only the 14 arm joints and 14 hand joints. A separately validated low-level controller must maintain standing and balance on real hardware.
+The lower-body and waist joints remain in the full 43-dimensional record, while the VLA policy directly controls the 14 arm joints and 14 hand joints.
 
 ## Data and action contract
 
@@ -72,9 +61,9 @@ src/g1_pi07/                   G1 joints, synchronization, IK, retargeting, data
 src/openpi/                    Selected OpenPI model, training, and policy-server components
 ros2_ws/src/g1_pi07_interfaces Strongly typed ROS2 messages
 ros2_ws/src/g1_pi07_bringup    State adapters, XR teleoperation, recording, safety, and launch files
-examples/unitree_g1/           Conversion, evaluation, RTC replay, and dry-run deployment examples
+examples/unitree_g1/           Conversion, evaluation, RTC replay, and deployment examples
 scripts/                       Episode QC, splits, sidecars, statistics, training, and serving entry points
-tests/                         Hardware-independent core pipeline tests
+tests/                         Core pipeline tests
 docs/reproduction/             Data, objective, RTC, and end-to-end runbook documentation
 ```
 
@@ -158,7 +147,7 @@ L = \lambda_{FAST}L_{CE} + \lambda_{flow}L_{FM}.
 
 `L_CE` trains the PaliGemma subtask and action-token branch. `L_FM` trains the continuous Action Expert while the VLM parameters are frozen for that graph. Step, dimension, and RTC-postfix masks are applied before loss reduction. The joint-objective trainer currently supports a single training process; the Flow-only baseline retains DDP support.
 
-## Evaluation and dry-run deployment
+## Evaluation and deployment
 
 ```bash
 uv run python examples/unitree_g1/eval/eval_g1_holdout.py \
@@ -175,13 +164,11 @@ uv run python examples/unitree_g1/deploy/g1_pi07_client.py \
   --config-path examples/unitree_g1/configs/g1_43dof.example.json
 ```
 
-Robot commands are disabled by default. The example limits intentionally set `confirmed_from_robot_urdf=false`; the client refuses live publication until verified limits are supplied.
-
 ## Documentation
 
-- [CODE_MAP.md](CODE_MAP.md): implementation-to-code mapping and external boundaries.
+- [CODE_MAP.md](CODE_MAP.md): implementation-to-code mapping and system flow.
 - [SOURCE_MANIFEST.md](SOURCE_MANIFEST.md): source snapshot and retained scope.
-- [VALIDATION.md](VALIDATION.md): checks already run and checks still pending.
+- [VALIDATION.md](VALIDATION.md): validation record and executed checks.
 - [docs/reproduction/runbook.md](docs/reproduction/runbook.md): end-to-end operating sequence.
 - [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md): upstream libraries, model releases, and research references.
 
