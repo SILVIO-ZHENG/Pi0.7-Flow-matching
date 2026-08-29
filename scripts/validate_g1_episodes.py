@@ -17,7 +17,6 @@ from g1_pi07.joints import ACTIVE_ACTION_DIM
 from g1_pi07.joints import DEFAULT_LAYOUT
 from g1_pi07.joints import FULL_DOF
 
-
 REQUIRED_COLUMNS = {
     "episode_id",
     "step_index",
@@ -104,7 +103,7 @@ def validate_episode(
         errors.append("metadata task is empty")
     try:
         table = pl.read_parquet(episode_dir / "steps.parquet")
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         return {"episode": episode_dir.name, "ok": False, "errors": [*errors, f"parquet: {exc}"], "warnings": []}
     rows = table.to_dicts()
     metrics["steps"] = len(rows)
@@ -155,7 +154,9 @@ def validate_episode(
         }:
             errors.append(f"row {row_index}: camera timestamp/delta keys are incomplete")
             break
-        if any(int(camera_stamps[name]) - int(row["timestamp_ns"]) != int(camera_deltas[name]) for name in camera_stamps):
+        if any(
+            int(camera_stamps[name]) - int(row["timestamp_ns"]) != int(camera_deltas[name]) for name in camera_stamps
+        ):
             errors.append(f"row {row_index}: camera timestamp and delta are inconsistent")
             break
 
@@ -239,7 +240,7 @@ def validate_episode(
             videos[camera] = _video_metrics(path)
             if videos[camera]["frames"] != len(rows):
                 errors.append(f"{camera} video frames {videos[camera]['frames']} != Parquet rows {len(rows)}")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             errors.append(f"Failed to read {camera} video: {exc}")
     metrics["videos"] = videos
     if int(metadata.get("num_steps", -1)) != len(rows):

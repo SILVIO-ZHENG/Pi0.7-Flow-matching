@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from g1_pi07.joints import DEFAULT_LAYOUT
 from g1_pi07_interfaces.msg import ActionTarget43
 from g1_pi07_interfaces.msg import RobotState43
 import numpy as np
@@ -11,9 +10,15 @@ from rclpy.node import Node
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Bool
 
+from g1_pi07.joints import DEFAULT_LAYOUT
+
 
 class RobotCommandAdapterNode(Node):
-    """Final safety gate that publishes a named upper-body JointState command."""
+    """Final safety gate that publishes a named upper-body JointState command.
+
+    A command is rejected as a whole if any freshness, ordering, stability,
+    limit, or per-cycle jump check fails. Partial joint commands are never sent.
+    """
 
     def __init__(self) -> None:
         super().__init__("robot_command_adapter")
@@ -35,8 +40,10 @@ class RobotCommandAdapterNode(Node):
         for name, value in defaults.items():
             self.declare_parameter(name, value)
         self._state: RobotState43 | None = None
+        # Fail-safe startup state: stability is unknown and emergency stop is active.
         self._stable = False
         self._estop = True
+        # Monotonic action stamps prevent duplicate or replayed command publication.
         self._last_published_stamp_ns = -1
         self._publisher = self.create_publisher(
             JointState,
@@ -94,9 +101,7 @@ class RobotCommandAdapterNode(Node):
         now_ns = self.get_clock().now().nanoseconds
         state_ns = int(state.header.stamp.sec) * 1_000_000_000 + int(state.header.stamp.nanosec)
         action_ns = int(message.header.stamp.sec) * 1_000_000_000 + int(message.header.stamp.nanosec)
-        source_state_ns = (
-            int(message.source_state_stamp.sec) * 1_000_000_000 + int(message.source_state_stamp.nanosec)
-        )
+        source_state_ns = int(message.source_state_stamp.sec) * 1_000_000_000 + int(message.source_state_stamp.nanosec)
         try:
             max_state_age_ns = self._positive_age_ns("max_state_age_ms")
             max_action_age_ns = self._positive_age_ns("max_action_age_ms")
@@ -111,7 +116,9 @@ class RobotCommandAdapterNode(Node):
             self.get_logger().error("Action message is stale; action rejected", throttle_duration_sec=2.0)
             return
         if abs(now_ns - source_state_ns) > max_source_state_age_ns:
-            self.get_logger().error("Source state used to generate the action is stale; action rejected", throttle_duration_sec=2.0)
+            self.get_logger().error(
+                "Source state used to generate the action is stale; action rejected", throttle_duration_sec=2.0
+            )
             return
         if action_ns <= self._last_published_stamp_ns:
             self.get_logger().warning("Action timestamp is duplicated or regressed; replayed command rejected")
@@ -127,6 +134,7 @@ class RobotCommandAdapterNode(Node):
         ):
             self.get_logger().error("Action or state contains NaN/Inf; command rejected")
             return
+        # Safety limits apply only to the 28 joints controlled by the policy.
         target = DEFAULT_LAYOUT.full_to_policy(target_full)
         current = DEFAULT_LAYOUT.full_to_policy(current_full)
         lower = np.asarray(self.get_parameter("lower_limits").value, dtype=np.float32)

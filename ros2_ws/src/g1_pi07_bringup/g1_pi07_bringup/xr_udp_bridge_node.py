@@ -12,11 +12,12 @@ import json
 import socket
 
 from builtin_interfaces.msg import Time
-from g1_pi07.teleop.xr import RigidXrCalibration
 from g1_pi07_interfaces.msg import XRHandTargets
 import numpy as np
 import rclpy
 from rclpy.node import Node
+
+from g1_pi07.teleop.xr import RigidXrCalibration
 
 
 def _time_from_ns(timestamp_ns: int) -> Time:
@@ -24,7 +25,11 @@ def _time_from_ns(timestamp_ns: int) -> Time:
 
 
 class XrUdpBridgeNode(Node):
-    """Receive at most one bounded JSON datagram per XR sample and publish ROS2."""
+    """Validate bounded XR datagrams and publish calibrated ROS2 targets.
+
+    Monotonic sequence checks reject replayed samples. Source timestamps are used
+    only when explicitly enabled and calibrated within the configured clock skew.
+    """
 
     def __init__(self) -> None:
         super().__init__("xr_udp_bridge")
@@ -68,13 +73,14 @@ class XrUdpBridgeNode(Node):
             raise ValueError("max_clock_skew_ms must be finite and non-negative")
         self._max_clock_skew_ns = int(max_clock_skew_ms * 1e6)
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self._socket.setblocking(False)
+        self._socket.setblocking(False)  # noqa: FBT003 - socket API requires a positional flag.
         self._socket.bind((str(self.get_parameter("bind_host").value), bind_port))
         self._publisher = self.create_publisher(
             XRHandTargets,
             str(self.get_parameter("output_topic").value),
             20,
         )
+        # A strictly increasing sequence protects the control path from UDP replay.
         self._last_sequence = -1
         self.create_timer(0.002, self._drain_socket)
         self.get_logger().info(
@@ -116,6 +122,7 @@ class XrUdpBridgeNode(Node):
             raise ValueError("timestamp_ns must not be negative")
 
         now_ns = self.get_clock().now().nanoseconds
+        # ROS receipt time is the default clock unless source time is calibrated.
         stamp_ns = now_ns
         if bool(self.get_parameter("use_source_timestamp").value):
             if source_timestamp_ns <= 0:

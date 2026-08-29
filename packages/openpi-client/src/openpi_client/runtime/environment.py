@@ -1,3 +1,5 @@
+"""Define the environment interface consumed by the client runtime."""
+
 import abc
 
 

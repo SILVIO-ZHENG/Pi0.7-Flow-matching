@@ -1,3 +1,5 @@
+"""Launch G1 state adaptation, teleoperation, command gating, and recording."""
+
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.actions import ExecuteProcess
@@ -50,9 +52,7 @@ def generate_launch_description():
             DeclareLaunchArgument("limits_confirmed", default_value="false"),
             DeclareLaunchArgument(
                 "params_file",
-                default_value=PathJoinSubstitution(
-                    [FindPackageShare("g1_pi07_bringup"), "config", "g1_pipeline.yaml"]
-                ),
+                default_value=PathJoinSubstitution([FindPackageShare("g1_pi07_bringup"), "config", "g1_pipeline.yaml"]),
             ),
             Node(
                 package="g1_pi07_bringup",

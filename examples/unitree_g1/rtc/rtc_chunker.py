@@ -17,7 +17,11 @@ import numpy as np
 
 @dataclasses.dataclass
 class RtcRequestContext:
-    """Context associated with one RTC inference request."""
+    """Execution snapshot associated with one RTC inference request.
+
+    ``previous_suffix`` is the unexecuted portion captured at request time and
+    is used to enforce the committed hard prefix when the result arrives.
+    """
 
     request_id: int
     start_step: int
@@ -27,7 +31,11 @@ class RtcRequestContext:
 
 
 class RtcChunker:
-    """Track training-time RTC state and align hard-prefix chunks."""
+    """Track training-time RTC state and align hard-prefix chunks.
+
+    Latency is measured in control steps. The maximum recent delay is used as a
+    conservative request horizon so the current chunk does not run dry.
+    """
 
     def __init__(
         self,
@@ -47,6 +55,7 @@ class RtcChunker:
             raise ValueError("min_horizon and initial_delay_steps must fit within the action horizon")
         self.horizon = int(horizon)
         self.min_horizon = min(int(min_horizon), self.horizon)
+        # Keep a bounded delay history to adapt without unbounded stale samples.
         self.delay_steps = deque([max(1, initial_delay_steps)], maxlen=delay_buffer_size)
         self.current_chunk: np.ndarray | None = None
         self.executed_since_swap = 0

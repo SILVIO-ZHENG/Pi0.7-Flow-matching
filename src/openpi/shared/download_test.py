@@ -1,3 +1,5 @@
+"""Validate cached download behavior."""
+
 import pathlib
 
 import pytest

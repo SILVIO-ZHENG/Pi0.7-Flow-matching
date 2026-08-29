@@ -1,3 +1,5 @@
+"""Encode, decode, and resize images for policy requests."""
+
 import numpy as np
 from PIL import Image
 

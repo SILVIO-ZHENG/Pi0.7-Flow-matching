@@ -210,6 +210,8 @@ class SiglipOutput(ModelOutput):
 
 
 class SiglipVisionEmbeddings(nn.Module):
+    """Convert image patches and positions into SigLIP vision embeddings."""
+
     def __init__(self, config: SiglipVisionConfig):
         super().__init__()
         self.config = config
@@ -283,6 +285,8 @@ class SiglipVisionEmbeddings(nn.Module):
 
 # Copied from transformers.models.clip.modeling_clip.CLIPTextEmbeddings with CLIP->Siglip
 class SiglipTextEmbeddings(nn.Module):
+    """Combine token and position embeddings for the SigLIP text encoder."""
+
     def __init__(self, config: SiglipTextConfig):
         super().__init__()
         embed_dim = config.hidden_size
@@ -418,6 +422,8 @@ class SiglipAttention(nn.Module):
 
 # Copied from transformers.models.clip.modeling_clip.CLIPMLP with CLIP->Siglip
 class SiglipMLP(nn.Module):
+    """Two-layer feed-forward network used inside SigLIP encoder blocks."""
+
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -433,6 +439,8 @@ class SiglipMLP(nn.Module):
 
 
 class SiglipEncoderLayer(GradientCheckpointingLayer):
+    """One SigLIP attention and feed-forward encoder block."""
+
     def __init__(self, config: Union[SiglipVisionConfig, SiglipTextConfig]):
         super().__init__()
         self.embed_dim = config.hidden_size
@@ -482,6 +490,8 @@ class SiglipEncoderLayer(GradientCheckpointingLayer):
 
 @auto_docstring
 class SiglipPreTrainedModel(PreTrainedModel):
+    """Shared initialization and capability metadata for SigLIP models."""
+
     config_class = SiglipConfig
     base_model_prefix = "siglip"
     supports_gradient_checkpointing = True
@@ -627,6 +637,8 @@ class SiglipEncoder(nn.Module):
 
 
 class SiglipTextTransformer(nn.Module):
+    """Encode token sequences and pool the final text representation."""
+
     def __init__(self, config: SiglipTextConfig):
         super().__init__()
         self.config = config
@@ -695,6 +707,8 @@ class SiglipTextTransformer(nn.Module):
     """
 )
 class SiglipTextModel(SiglipPreTrainedModel):
+    """Public SigLIP text tower wrapper around the text transformer."""
+
     config_class = SiglipTextConfig
 
     def __init__(self, config: SiglipTextConfig):
@@ -746,6 +760,8 @@ class SiglipTextModel(SiglipPreTrainedModel):
 
 
 class SiglipVisionTransformer(nn.Module):
+    """Encode image patches and pool the final visual representation."""
+
     def __init__(self, config: SiglipVisionConfig):
         super().__init__()
         self.config = config
@@ -826,6 +842,8 @@ class SiglipMultiheadAttentionPoolingHead(nn.Module):
     """
 )
 class SiglipVisionModel(SiglipPreTrainedModel):
+    """Public SigLIP vision tower wrapper around the vision transformer."""
+
     config_class = SiglipVisionConfig
     main_input_name = "pixel_values"
 
@@ -880,6 +898,8 @@ class SiglipVisionModel(SiglipPreTrainedModel):
 
 @auto_docstring
 class SiglipModel(SiglipPreTrainedModel):
+    """Dual-encoder SigLIP model producing aligned image/text similarities."""
+
     config_class = SiglipConfig
 
     def __init__(self, config: SiglipConfig):
@@ -1115,6 +1135,8 @@ class SiglipModel(SiglipPreTrainedModel):
     """
 )
 class SiglipForImageClassification(SiglipPreTrainedModel):
+    """SigLIP vision encoder with an image-classification head."""
+
     main_input_name = "pixel_values"
 
     def __init__(self, config: SiglipConfig) -> None:

@@ -1,3 +1,5 @@
+"""Implement the fast autoregressive Pi0 model variant."""
+
 import dataclasses
 import logging
 from typing import Any
@@ -75,6 +77,8 @@ def put_along_last_axis(arr, indices, values):
 
 @dataclasses.dataclass(frozen=True)
 class Pi0FASTConfig(_model.BaseModelConfig):
+    """Configuration for the FAST discrete-action Pi0 variant."""
+
     dtype: str = "bfloat16"
     paligemma_variant: _gemma.Variant = "gemma_2b"
 
@@ -132,6 +136,8 @@ class Pi0FASTConfig(_model.BaseModelConfig):
 
 
 class Pi0FAST(_model.BaseModel):
+    """Pi0 variant that autoregressively predicts FAST action tokens."""
+
     def __init__(self, config: Pi0FASTConfig, rngs: nnx.Rngs):
         super().__init__(config.action_dim, config.action_horizon, config.max_token_len)
         paligemma_config = _gemma.get_config(config.paligemma_variant)

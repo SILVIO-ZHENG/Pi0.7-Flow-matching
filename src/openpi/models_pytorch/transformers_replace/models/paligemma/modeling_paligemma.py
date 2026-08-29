@@ -89,6 +89,8 @@ class PaliGemmaCausalLMOutputWithPast(ModelOutput):
 
 
 class PaliGemmaMultiModalProjector(nn.Module):
+    """Project SigLIP vision features into the Gemma text embedding width."""
+
     def __init__(self, config: PaliGemmaConfig):
         super().__init__()
         self.linear = nn.Linear(config.vision_config.hidden_size, config.vision_config.projection_dim, bias=True)
@@ -101,6 +103,8 @@ class PaliGemmaMultiModalProjector(nn.Module):
 
 @auto_docstring
 class PaliGemmaPreTrainedModel(PreTrainedModel):
+    """Shared metadata and initialization behavior for PaliGemma variants."""
+
     config_class = PaliGemmaConfig
     base_model_prefix = ""
     supports_gradient_checkpointing = True
@@ -131,6 +135,8 @@ class PaliGemmaPreTrainedModel(PreTrainedModel):
     """
 )
 class PaliGemmaModel(PaliGemmaPreTrainedModel):
+    """Fuse projected image tokens with text tokens in a Gemma language model."""
+
     _checkpoint_conversion_mapping = {"language_model.model": "language_model"}
     # we are filtering the logits/labels so we shouldn't divide the loss based on num_items_in_batch
     accepts_loss_kwargs = False
@@ -369,7 +375,10 @@ class PaliGemmaModel(PaliGemmaPreTrainedModel):
         )
 
 
-class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs): ...
+class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs):
+    """Typed optional keyword arguments for multimodal causal generation."""
+
+    ...
 
 
 @auto_docstring(
@@ -378,6 +387,8 @@ class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs): ...
     """
 )
 class PaliGemmaForConditionalGeneration(PaliGemmaPreTrainedModel, GenerationMixin):
+    """PaliGemma model with conditional language-generation utilities."""
+
     _checkpoint_conversion_mapping = {
         "^language_model.model": "model.language_model",
         "^vision_tower": "model.vision_tower",

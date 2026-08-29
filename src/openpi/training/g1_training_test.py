@@ -1,3 +1,5 @@
+"""Validate Unitree G1 training configuration and data integration."""
+
 import json
 import unittest
 
@@ -26,15 +28,15 @@ def test_sidecar_dataset_injects_numeric_and_memory(tmp_path):
     )
 
     class Dataset:
+        """Minimal indexable dataset fixture used by transform-wrapper tests."""
+
         def __getitem__(self, index):
             return {"episode_index": 1, "index": 2, "value": index}
 
         def __len__(self):
             return 1
 
-    dataset = g1_training.SidecarDataset(
-        Dataset(), g1_training.read_sidecar(sidecar_path), include_text=True
-    )
+    dataset = g1_training.SidecarDataset(Dataset(), g1_training.read_sidecar(sidecar_path), include_text=True)
     item = dataset[0]
     assert item[g1_training.ADVANTAGE_KEY] == 1.0
     assert item[g1_training.MEMORY_KEY] == "The gripper is aligned with the target."
@@ -62,6 +64,8 @@ def test_rl_token_weights_apply_to_losses():
 @unittest.skipIf(torch is None, "PyTorch training dependencies are not installed")
 def test_knowledge_insulation_freezes_vlm_like_parameters():
     class Model(torch.nn.Module):
+        """Small differentiable model fixture for gradient-isolation tests."""
+
         def __init__(self):
             super().__init__()
             self.paligemma_with_expert = torch.nn.Module()
@@ -70,9 +74,7 @@ def test_knowledge_insulation_freezes_vlm_like_parameters():
             self.action_in_proj = torch.nn.Linear(2, 2)
 
     model = Model()
-    stats = g1_training.apply_knowledge_insulation(
-        model, g1_training.KnowledgeInsulationConfig(enabled=True)
-    )
+    stats = g1_training.apply_knowledge_insulation(model, g1_training.KnowledgeInsulationConfig(enabled=True))
     assert stats["frozen"] > 0
     assert model.paligemma_with_expert.paligemma.weight.requires_grad is False
     assert model.paligemma_with_expert.gemma_expert.weight.requires_grad is True

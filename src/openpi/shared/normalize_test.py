@@ -1,3 +1,5 @@
+"""Validate normalization statistics and value transforms."""
+
 import numpy as np
 
 import openpi.shared.normalize as normalize

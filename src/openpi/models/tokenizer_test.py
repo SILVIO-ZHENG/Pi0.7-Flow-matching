@@ -1,3 +1,5 @@
+"""Validate prompt and action tokenizers."""
+
 import numpy as np
 
 from openpi.models import tokenizer as _tokenizer

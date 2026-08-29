@@ -1,3 +1,5 @@
+"""Configure shared pytest behavior for the OpenPI test suite."""
+
 import os
 
 import pynvml

@@ -5,6 +5,8 @@
 #                          modular_gemma.py file directly. One of our CI enforces this.
 #                🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 # coding=utf-8
+"""Implement the local PyTorch Gemma language-model components."""
+
 # Copyright 2024 Google Inc. HuggingFace Inc. team. All rights reserved.
 #
 #
@@ -47,6 +49,8 @@ logger = logging.get_logger(__name__)
 
 
 class GemmaRMSNorm(nn.Module):
+    """Gemma root-mean-square normalization in float32 for numerical stability."""
+
     def __init__(self, dim: int, eps: float = 1e-6, cond_dim: Optional[int] = None):
         super().__init__()
         self.eps = eps
@@ -113,6 +117,8 @@ class GemmaRMSNorm(nn.Module):
 
 
 class GemmaMLP(nn.Module):
+    """Gated Gemma feed-forward projection with configured activation."""
+
     def __init__(self, config):
         super().__init__()
         self.config = config
@@ -129,6 +135,8 @@ class GemmaMLP(nn.Module):
 
 
 class GemmaRotaryEmbedding(nn.Module):
+    """Precompute rotary position frequencies for Gemma attention heads."""
+
     def __init__(self, config: GemmaConfig, device=None):
         super().__init__()
         # BC: "rope_type" was originally "type"
@@ -332,6 +340,8 @@ class GemmaAttention(nn.Module):
 
 
 class GemmaDecoderLayer(GradientCheckpointingLayer):
+    """One pre-normalized Gemma self-attention and feed-forward decoder block."""
+
     def __init__(self, config: GemmaConfig, layer_idx: int):
         super().__init__()
         self.hidden_size = config.hidden_size
@@ -388,6 +398,8 @@ class GemmaDecoderLayer(GradientCheckpointingLayer):
 
 @auto_docstring
 class GemmaPreTrainedModel(PreTrainedModel):
+    """Shared initialization and capability metadata for Gemma model variants."""
+
     config_class = GemmaConfig
     base_model_prefix = "model"
     supports_gradient_checkpointing = True
@@ -419,6 +431,8 @@ class GemmaPreTrainedModel(PreTrainedModel):
 
 @auto_docstring
 class GemmaModel(GemmaPreTrainedModel):
+    """Decoder-only Gemma transformer returning contextual hidden states."""
+
     def __init__(self, config: GemmaConfig):
         super().__init__(config)
         self.padding_idx = config.pad_token_id
@@ -557,11 +571,16 @@ class GemmaModel(GemmaPreTrainedModel):
         )
 
 
-class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs): ...
+class KwargsForCausalLM(FlashAttentionKwargs, LossKwargs):
+    """Typed optional keyword arguments accepted by causal language modeling."""
+
+    ...
 
 
 @auto_docstring
 class GemmaForCausalLM(GemmaPreTrainedModel, GenerationMixin):
+    """Gemma decoder with a vocabulary projection for causal generation."""
+
     _tied_weights_keys = ["lm_head.weight"]
     _tp_plan = {"lm_head": "colwise_rep"}
     _pp_plan = {"lm_head": (["hidden_states"], ["logits"])}
@@ -689,6 +708,8 @@ class GemmaForCausalLM(GemmaPreTrainedModel, GenerationMixin):
     """
 )
 class GemmaForSequenceClassification(GemmaPreTrainedModel):
+    """Gemma decoder with a pooled sequence-classification head."""
+
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
@@ -781,6 +802,8 @@ class GemmaForSequenceClassification(GemmaPreTrainedModel):
 
 @auto_docstring
 class GemmaForTokenClassification(GemmaPreTrainedModel):
+    """Gemma decoder with per-token classification logits."""
+
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels

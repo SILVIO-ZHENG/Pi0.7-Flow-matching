@@ -1,3 +1,5 @@
+"""Implement the PyTorch Pi0 vision-language-action model."""
+
 import logging
 import math
 import time
@@ -92,6 +94,8 @@ def make_att_2d_masks(pad_masks, att_masks):
 
 
 class PI0Pytorch(nn.Module):
+    """PyTorch Pi0 implementation for multimodal Flow Matching inference."""
+
     def __init__(self, config):
         super().__init__()
         self.config = config

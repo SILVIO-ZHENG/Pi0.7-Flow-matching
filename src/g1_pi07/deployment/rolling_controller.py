@@ -10,6 +10,12 @@ import numpy as np
 
 @dataclass(frozen=True)
 class RequestContext:
+    """Execution snapshot captured when an asynchronous request is submitted.
+
+    The prefix contains actions expected to execute while inference is in
+    flight, allowing the returned chunk to be aligned to the current step.
+    """
+
     request_id: int
     control_step: int
     executed_in_chunk: int
@@ -31,16 +37,12 @@ class RollingChunkController:
     ) -> None:
         if horizon <= 0 or min_replan_steps <= 0 or delay_history <= 0:
             raise ValueError("horizon, min_replan_steps, and delay_history must be greater than zero")
-        if (
-            min_replan_steps > horizon
-            or initial_delay_steps < 0
-            or initial_delay_steps > horizon
-            or blend_steps < 0
-        ):
+        if min_replan_steps > horizon or initial_delay_steps < 0 or initial_delay_steps > horizon or blend_steps < 0:
             raise ValueError("Replanning, delay, or blend parameters are outside their valid ranges")
         self.horizon = horizon
         self.min_replan_steps = min_replan_steps
         self.blend_steps = blend_steps
+        # A conservative rolling maximum prevents requests from starting too late.
         self._delay_steps = deque([max(1, initial_delay_steps)], maxlen=delay_history)
         self._chunk: np.ndarray | None = None
         self._index = 0
@@ -89,6 +91,7 @@ class RollingChunkController:
             raise ValueError("Inference-result request_id does not match the current request")
         if self._last_action is not None and actions.shape[1:] != self._last_action.shape:
             raise ValueError("Chunk action dimension does not match previously executed actions")
+        # Delay is measured in control ticks, not wall-clock milliseconds.
         observed_delay = max(0, self._control_step - self._inflight.control_step)
         self._delay_steps.append(max(1, observed_delay))
         aligned = actions[min(observed_delay, len(actions)) : self.horizon]

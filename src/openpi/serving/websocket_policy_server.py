@@ -1,3 +1,5 @@
+"""Serve OpenPI policy inference over a WebSocket connection."""
+
 import asyncio
 import http
 import logging

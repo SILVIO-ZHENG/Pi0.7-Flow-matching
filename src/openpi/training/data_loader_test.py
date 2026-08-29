@@ -1,3 +1,5 @@
+"""Validate OpenPI training data-loader behavior."""
+
 import dataclasses
 
 import jax

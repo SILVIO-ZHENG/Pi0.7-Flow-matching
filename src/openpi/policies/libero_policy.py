@@ -1,3 +1,5 @@
+"""Convert LIBERO observations and actions for OpenPI inference."""
+
 import dataclasses
 
 import einops

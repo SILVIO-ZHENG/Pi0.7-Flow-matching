@@ -1,3 +1,5 @@
+"""Implement the Flax Pi0 vision-language-action model."""
+
 import logging
 
 import einops
@@ -64,6 +66,8 @@ def posemb_sincos(
 
 
 class Pi0(_model.BaseModel):
+    """Vision-language-action model with a continuous Flow Matching expert."""
+
     def __init__(self, config: pi0_config.Pi0Config, rngs: nnx.Rngs):
         super().__init__(config.action_dim, config.action_horizon, config.max_token_len)
         self.pi05 = config.pi05

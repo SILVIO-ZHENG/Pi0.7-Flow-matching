@@ -1,6 +1,7 @@
+"""Package metadata and ROS2 console entry points for g1_pi07_bringup."""
+
 from setuptools import find_packages
 from setuptools import setup
-
 
 package_name = "g1_pi07_bringup"
 

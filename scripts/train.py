@@ -1,3 +1,5 @@
+"""Train the JAX OpenPI policy with checkpointing and experiment logging."""
+
 import dataclasses
 import functools
 import logging
@@ -33,6 +35,8 @@ def init_logging():
     level_mapping = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
 
     class CustomFormatter(logging.Formatter):
+        """Render compact one-letter levels in console training logs."""
+
         def format(self, record):
             record.levelname = level_mapping.get(record.levelname, record.levelname)
             return super().format(record)

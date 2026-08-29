@@ -1,8 +1,12 @@
+"""Define the common inference interface used by OpenPI policy clients."""
+
 import abc
 from typing import Dict
 
 
 class BasePolicy(abc.ABC):
+    """Abstract inference interface implemented by local and remote policies."""
+
     @abc.abstractmethod
     def infer(self, obs: Dict) -> Dict:
         """Infer actions from observations."""

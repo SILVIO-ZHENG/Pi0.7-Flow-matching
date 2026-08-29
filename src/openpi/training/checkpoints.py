@@ -1,3 +1,5 @@
+"""Save, restore, and manage OpenPI training checkpoints."""
+
 from __future__ import annotations
 
 import asyncio
@@ -115,6 +117,8 @@ def load_norm_stats(assets_dir: epath.Path | str, asset_id: str) -> dict[str, _n
 
 
 class Callback(Protocol):
+    """Callable invoked after a checkpoint directory has been written."""
+
     def __call__(self, directory: epath.Path) -> None: ...
 
 
@@ -135,11 +139,14 @@ class CallbackHandler(ocp.AsyncCheckpointHandler):
 @ocp.args.register_with_handler(CallbackHandler, for_save=True)
 @dataclasses.dataclass
 class CallbackSave(ocp.args.CheckpointArgs):
+    """Orbax save arguments carrying an asynchronous completion callback."""
+
     callback: Callback
 
 
 @ocp.args.register_with_handler(CallbackHandler, for_restore=True)
-class CallbackRestore(ocp.args.CheckpointArgs): ...
+class CallbackRestore(ocp.args.CheckpointArgs):
+    """Marker arguments for the callback handler's unsupported restore path."""
 
 
 def _split_params(state: training_utils.TrainState) -> tuple[training_utils.TrainState, at.Params]:

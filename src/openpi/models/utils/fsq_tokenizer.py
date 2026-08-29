@@ -1,3 +1,5 @@
+"""Implement finite-scalar-quantization tokenizers for continuous actions."""
+
 import math
 from typing import Any, Literal
 
@@ -13,6 +15,8 @@ import jax.numpy as jnp
 
 
 class FsqCodebook(nn.Module):
+    """Finite-scalar or lookup-free codebook for continuous action latents."""
+
     input_dim: int
     target_codebook_size: int
     codebook_type: Literal["fsq", "lfq"]
@@ -126,6 +130,8 @@ class FsqCodebook(nn.Module):
 
 
 class ResNetDownBlock(nn.Module):
+    """Residual temporal block with optional stride-based downsampling."""
+
     stride: int = 1
     n_filters: int = 64
     dropout_rate: float = 0.0
@@ -148,6 +154,8 @@ class ResNetDownBlock(nn.Module):
 
 
 class ResNetUpBlock(nn.Module):
+    """Residual temporal block with optional transposed-convolution upsampling."""
+
     stride: int = 1
     n_filters: int = 64
     dropout_rate: float = 0.0
@@ -171,6 +179,8 @@ class ResNetUpBlock(nn.Module):
 
 @dataclass
 class LfqCodebookOutput:
+    """Quantized tokens, latents, probabilities, and commitment loss."""
+
     tokens: jnp.ndarray
     z: jnp.ndarray
     z_q: jnp.ndarray
@@ -179,6 +189,8 @@ class LfqCodebookOutput:
 
 
 class LookupFreeQuantization(nn.Module):
+    """Quantize projected latents without an explicitly learned embedding table."""
+
     num_dims: int
     latent_dim: int
 
@@ -267,6 +279,8 @@ class GeGLU(Module):
 
 
 class CrossAttentionLayer(nn.Module):
+    """Cross-attention block with residual normalization and a gated MLP."""
+
     dropout_rate: float = 0.0
     num_heads: int = None
     causal: bool = False
@@ -339,6 +353,8 @@ def sinusoidal_pe_init(_, shape: tuple[int, int]) -> jnp.ndarray:
 
 
 class TokenizerEncoderDecoder(nn.Module):
+    """Encode action tokens and reconstruct trajectories through cross-attention."""
+
     num_tokens: int
     num_cross_tokens: int
     num_layers: int
@@ -383,6 +399,8 @@ class TokenizerEncoderDecoder(nn.Module):
 
 
 class FsqAttentionTokenizer(nn.Module):
+    """Attention-based action tokenizer backed by finite scalar quantization."""
+
     embed_dim: int
     data_dim: int
     data_horizon: int

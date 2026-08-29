@@ -4,15 +4,15 @@ from __future__ import annotations
 
 from bisect import bisect_left
 from collections import deque
+from collections.abc import Iterable
 from dataclasses import dataclass
 import math
-from typing import Generic, Iterable, TypeVar
+from typing import Generic, TypeVar
 
 from g1_pi07.data.types import ActionTargetFrame
 from g1_pi07.data.types import AlignedStep
 from g1_pi07.data.types import CameraFrame
 from g1_pi07.data.types import RobotStateFrame
-
 
 T = TypeVar("T")
 
@@ -23,6 +23,8 @@ class AlignmentError(RuntimeError):
 
 @dataclass(frozen=True)
 class TimestampMatch(Generic[T]):
+    """Nearest item and its signed ``item_time - query_time`` offset."""
+
     item: T
     delta_ns: int
 
@@ -38,7 +40,7 @@ class TimestampBuffer(Generic[T]):
         self._timestamps: list[int] = []
 
     def push(self, item: T) -> None:
-        timestamp = int(getattr(item, "timestamp_ns"))
+        timestamp = int(item.timestamp_ns)
         position = bisect_left(self._timestamps, timestamp)
         self._timestamps.insert(position, timestamp)
         self._items.insert(position, item)
@@ -53,6 +55,7 @@ class TimestampBuffer(Generic[T]):
         position = bisect_left(self._timestamps, timestamp_ns)
         candidates = [index for index in (position - 1, position) if 0 <= index < len(self._items)]
         index = min(candidates, key=lambda i: (abs(self._timestamps[i] - timestamp_ns), self._timestamps[i]))
+        # Preserve the sign so downstream QC can detect systematic lead/lag.
         delta = self._timestamps[index] - timestamp_ns
         if abs(delta) > max_delta_ns:
             return None
@@ -97,6 +100,7 @@ class ActionCentricSynchronizer:
         self.max_camera_delta_ns = int(max_camera_delta_ms * 1e6)
         self.states: TimestampBuffer[RobotStateFrame] = TimestampBuffer(capacity)
         self.cameras = {name: TimestampBuffer[CameraFrame](capacity) for name in self.camera_names}
+        # Sequence lookup keeps the exact state that generated an action.
         self._states_by_sequence: dict[int, RobotStateFrame] = {}
         self._sequence_fifo: deque[int] = deque(maxlen=capacity)
 

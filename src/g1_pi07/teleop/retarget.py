@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from dataclasses import field
 
 import numpy as np
 
@@ -19,12 +20,14 @@ def _bend(a: np.ndarray, b: np.ndarray, c: np.ndarray) -> float:
 
 @dataclass(frozen=True)
 class Dex3Calibration:
+    """Per-actuator range and direction calibration for one seven-DoF hand."""
+
     lower: np.ndarray
     upper: np.ndarray
     invert: np.ndarray
 
     @classmethod
-    def unit_range(cls) -> "Dex3Calibration":
+    def unit_range(cls) -> Dex3Calibration:
         return cls(np.zeros(7, np.float32), np.ones(7, np.float32), np.zeros(7, np.bool_))
 
     def __post_init__(self) -> None:
@@ -44,7 +47,13 @@ class Dex3Calibration:
 
 @dataclass(frozen=True)
 class Dex3Retargeter:
-    calibration: Dex3Calibration = Dex3Calibration.unit_range()
+    """Convert 21 tracked hand keypoints into seven calibrated Dex3 targets.
+
+    Geometric features are normalized flexion values; calibration then applies
+    actuator direction and maps them into configured joint ranges.
+    """
+
+    calibration: Dex3Calibration = field(default_factory=Dex3Calibration.unit_range)
 
     def normalized_flexion(self, keypoints: np.ndarray) -> np.ndarray:
         points = np.asarray(keypoints, dtype=np.float32)
@@ -54,7 +63,7 @@ class Dex3Retargeter:
             raise ValueError("Hand keypoints must not contain NaN or Inf")
         # MediaPipe/OpenXR-compatible indices: wrist=0, thumb=1..4,
         # index=5..8, middle=9..12. Dex3-1 uses 3+2+2 actuators.
-        values = np.asarray(
+        return np.asarray(
             [
                 _bend(points[0], points[1], points[2]),
                 _bend(points[1], points[2], points[3]),
@@ -66,7 +75,6 @@ class Dex3Retargeter:
             ],
             dtype=np.float32,
         )
-        return values
 
     def retarget(self, keypoints: np.ndarray) -> np.ndarray:
         normalized = self.normalized_flexion(keypoints)

@@ -44,15 +44,17 @@ from g1_pi07.training.objectives import knowledge_insulated_backward
 import openpi.models.pi0_config
 import openpi.models_pytorch.pi0_pytorch
 import openpi.shared.normalize as _normalize
-import openpi.training.g1_training as _g1_training
 import openpi.training.config as _config
 import openpi.training.data_loader as _data
+import openpi.training.g1_training as _g1_training
 
 
 def init_logging():
     level_mapping = {"DEBUG": "D", "INFO": "I", "WARNING": "W", "ERROR": "E", "CRITICAL": "C"}
 
     class CustomFormatter(logging.Formatter):
+        """Render compact one-letter levels in console training logs."""
+
         def format(self, record):
             record.levelname = level_mapping.get(record.levelname, record.levelname)
             return super().format(record)
@@ -553,9 +555,9 @@ def train_loop(config: _config.TrainConfig):
                 metadata = None
 
             # The unified data loader returns (observation, actions) tuple
-            observation = jax.tree.map(lambda x: x.to(device), observation)  # noqa: PLW2901
-            actions = actions.to(torch.float32)  # noqa: PLW2901
-            actions = actions.to(device)  # noqa: PLW2901
+            observation = jax.tree.map(lambda x: x.to(device), observation)
+            actions = actions.to(torch.float32)
+            actions = actions.to(device)
 
             # Update LR
             for pg in optim.param_groups:
@@ -564,7 +566,11 @@ def train_loop(config: _config.TrainConfig):
             rl_weights = _g1_training.make_rl_token_weights(metadata, config.rl_token)
             optim.zero_grad(set_to_none=True)
 
-            def compute_flow_loss():
+            def compute_flow_loss(
+                observation=observation,
+                actions=actions,
+                rl_weights=rl_weights,
+            ):
                 flow_losses = model(observation, actions, objective="flow")
                 if isinstance(flow_losses, list | tuple):
                     flow_losses = torch.stack(flow_losses)
@@ -575,14 +581,17 @@ def train_loop(config: _config.TrainConfig):
             if config.joint_objective.enabled:
                 base_model = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
                 objective_metrics = knowledge_insulated_backward(
-                    fast_loss_fn=lambda: model(observation, None, objective="fast_ce"),
+                    fast_loss_fn=lambda observation=observation: model(observation, None, objective="fast_ce"),
                     flow_loss_fn=compute_flow_loss,
                     vlm_parameters=base_model.vlm_parameters(),
                     config=config.joint_objective,
                 )
                 flow_loss = objective_metrics["flow_loss"]
                 fast_ce_loss = objective_metrics["fast_ce_loss"]
-                loss = config.joint_objective.flow_weight * flow_loss + config.joint_objective.fast_ce_weight * fast_ce_loss
+                loss = (
+                    config.joint_objective.flow_weight * flow_loss
+                    + config.joint_objective.fast_ce_weight * fast_ce_loss
+                )
             else:
                 flow_loss = compute_flow_loss()
                 fast_ce_loss = None

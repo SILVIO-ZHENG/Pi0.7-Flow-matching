@@ -1,3 +1,5 @@
+"""Adapt an OpenPI policy client to the asynchronous runtime agent interface."""
+
 from typing_extensions import override
 
 from openpi_client import base_policy as _base_policy

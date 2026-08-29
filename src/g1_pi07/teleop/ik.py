@@ -10,6 +10,8 @@ import numpy as np
 
 @dataclass(frozen=True)
 class Pose:
+    """Cartesian target with a normalized quaternion in ``x, y, z, w`` order."""
+
     position: np.ndarray
     quaternion_xyzw: np.ndarray
 
@@ -28,6 +30,8 @@ class Pose:
 
 
 class ArmKinematics(Protocol):
+    """Minimal forward-kinematics interface required by the numeric IK solver."""
+
     def forward(self, q: np.ndarray) -> Pose: ...
 
     def jacobian(self, q: np.ndarray) -> np.ndarray: ...
@@ -35,6 +39,8 @@ class ArmKinematics(Protocol):
 
 @dataclass(frozen=True)
 class IKResult:
+    """Solver output with convergence state and final translation/rotation errors."""
+
     q: np.ndarray
     converged: bool
     iterations: int
@@ -87,6 +93,12 @@ def pose_error(current: Pose, target: Pose) -> np.ndarray:
 
 @dataclass
 class DampedLeastSquaresIK:
+    """Solve bounded arm IK using damped least-squares Jacobian updates.
+
+    ``max_step_norm`` caps each joint-space update before joint-limit clipping,
+    reducing instability near singular configurations.
+    """
+
     kinematics: ArmKinematics
     lower_limits: np.ndarray
     upper_limits: np.ndarray
@@ -123,22 +135,34 @@ class DampedLeastSquaresIK:
         last_error = np.full(6, np.inf)
         for iteration in range(1, self.max_iterations + 1):
             last_error = pose_error(self.kinematics.forward(q), target)
-            if np.linalg.norm(last_error[:3]) <= self.position_tolerance and np.linalg.norm(
-                last_error[3:]
-            ) <= self.rotation_tolerance:
-                return IKResult(q.astype(np.float32), True, iteration, *self._error_norms(last_error))
+            if (
+                np.linalg.norm(last_error[:3]) <= self.position_tolerance
+                and np.linalg.norm(last_error[3:]) <= self.rotation_tolerance
+            ):
+                return IKResult(
+                    q.astype(np.float32),
+                    True,  # noqa: FBT003 - the result tuple stores convergence positionally.
+                    iteration,
+                    *self._error_norms(last_error),
+                )
             jacobian = np.asarray(self.kinematics.jacobian(q), dtype=np.float64)
             if jacobian.shape != (6, len(q)):
                 raise ValueError(f"Jacobian must have shape [6,{len(q)}]; got {jacobian.shape}")
             if not np.isfinite(jacobian).all():
                 raise ValueError("Jacobian contains NaN or Inf")
+            # Damping regularizes the task-space solve near singular Jacobians.
             regularized = jacobian @ jacobian.T + (self.damping**2) * np.eye(6)
             delta = jacobian.T @ np.linalg.solve(regularized, last_error)
             delta_norm = np.linalg.norm(delta)
             if delta_norm > self.max_step_norm:
                 delta *= self.max_step_norm / delta_norm
             q = np.clip(q + delta, lower, upper)
-        return IKResult(q.astype(np.float32), False, self.max_iterations, *self._error_norms(last_error))
+        return IKResult(
+            q.astype(np.float32),
+            False,  # noqa: FBT003 - the result tuple stores convergence positionally.
+            self.max_iterations,
+            *self._error_norms(last_error),
+        )
 
     @staticmethod
     def _error_norms(error: np.ndarray) -> tuple[float, float]:

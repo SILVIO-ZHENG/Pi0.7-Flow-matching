@@ -1,3 +1,5 @@
+"""Download and cache remote OpenPI assets."""
+
 import concurrent.futures
 import datetime
 import logging

@@ -14,6 +14,13 @@ from g1_pi07.joints import G1JointLayout
 
 @dataclass(frozen=True)
 class ActionChunk:
+    """A fixed-horizon model action tensor and its validity metadata.
+
+    ``step_mask`` excludes padded time steps, while ``dim_mask`` excludes the
+    four model-only padding dimensions. ``source_indices`` preserves the raw
+    trajectory index for every non-padded step.
+    """
+
     actions: np.ndarray
     step_mask: np.ndarray
     dim_mask: np.ndarray
@@ -44,6 +51,7 @@ def make_action_chunk(
     if horizon <= 0:
         raise ValueError("horizon must be greater than zero")
 
+    # ``valid`` is the number of real future actions before tail padding.
     valid = min(horizon, len(values) - start_index)
     chunk_28 = np.empty((horizon, ACTIVE_ACTION_DIM), dtype=np.float32)
     chunk_28[:valid] = values[start_index : start_index + valid]
@@ -56,6 +64,7 @@ def make_action_chunk(
             raise ValueError("pad_mode must be 'repeat_last' or 'zeros'")
 
     step_mask = np.arange(horizon) < valid
+    # ``-1`` makes padded positions distinguishable from raw episode indices.
     source_indices = np.full(horizon, -1, dtype=np.int64)
     source_indices[:valid] = np.arange(start_index, start_index + valid)
     return ActionChunk(

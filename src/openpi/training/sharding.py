@@ -1,3 +1,5 @@
+"""Define JAX sharding helpers for distributed OpenPI training."""
+
 import contextlib
 import logging
 
@@ -11,6 +13,8 @@ DATA_AXIS = (BATCH_AXIS, FSDP_AXIS)
 
 
 class _MeshState:
+    """Process-local holder for the mesh used by sharding helper functions."""
+
     active_mesh: jax.sharding.Mesh | None = None
 
 

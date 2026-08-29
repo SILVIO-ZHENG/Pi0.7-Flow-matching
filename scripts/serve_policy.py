@@ -1,3 +1,5 @@
+"""Serve a configured OpenPI policy over the websocket inference interface."""
+
 import dataclasses
 import enum
 import logging

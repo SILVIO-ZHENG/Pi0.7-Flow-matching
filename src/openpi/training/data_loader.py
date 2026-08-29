@@ -1,3 +1,5 @@
+"""Build datasets and iterators for OpenPI training."""
+
 from collections.abc import Iterator, Sequence
 import logging
 import multiprocessing
@@ -13,8 +15,8 @@ import torch
 
 import openpi.models.model as _model
 import openpi.training.config as _config
-import openpi.training.g1_training as _g1_training
 from openpi.training.droid_rlds_dataset import DroidRldsDataset
+import openpi.training.g1_training as _g1_training
 import openpi.transforms as _transforms
 
 T_co = TypeVar("T_co", covariant=True)
@@ -52,6 +54,8 @@ class DataLoader(Protocol[T_co]):
 
 
 class TransformedDataset(Dataset[T_co]):
+    """Apply a composed transform lazily to random-access dataset items."""
+
     def __init__(self, dataset: Dataset, transforms: Sequence[_transforms.DataTransformFn]):
         self._dataset = dataset
         self._transform = _transforms.compose(transforms)
@@ -64,6 +68,8 @@ class TransformedDataset(Dataset[T_co]):
 
 
 class IterableTransformedDataset(IterableDataset[T_co]):
+    """Apply transforms lazily to an iterable, optionally pre-batched dataset."""
+
     def __init__(
         self,
         dataset: IterableDataset,
@@ -98,6 +104,8 @@ class IterableTransformedDataset(IterableDataset[T_co]):
 
 
 class FakeDataset(Dataset):
+    """Generate deterministic synthetic samples from model input specifications."""
+
     def __init__(self, model_config: _model.BaseModelConfig, num_samples: int):
         self._num_samples = num_samples
         self._observation_spec, self._action_spec = model_config.inputs_spec()
@@ -546,6 +554,8 @@ class RLDSDataLoader:
 
 
 class DataLoaderImpl(DataLoader):
+    """Attach resolved data metadata to a concrete Torch or RLDS loader."""
+
     def __init__(self, data_config: _config.DataConfig, data_loader: TorchDataLoader | RLDSDataLoader):
         self._data_config = data_config
         self._data_loader = data_loader

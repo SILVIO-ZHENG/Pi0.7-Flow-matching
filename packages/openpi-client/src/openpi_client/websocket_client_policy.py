@@ -1,3 +1,5 @@
+"""Call a remote OpenPI policy through a WebSocket client."""
+
 import logging
 import time
 from typing import Dict, Optional, Tuple

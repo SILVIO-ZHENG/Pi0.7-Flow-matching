@@ -1,3 +1,5 @@
+"""Load pretrained model weights into OpenPI training states."""
+
 import dataclasses
 import logging
 import re
@@ -15,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 @runtime_checkable
 class WeightLoader(Protocol):
+    """Protocol for mapping checkpoint weights into an initialized parameter tree."""
+
     def load(self, params: at.Params) -> at.Params:
         """Loads the model weights.
 
@@ -30,6 +34,8 @@ class WeightLoader(Protocol):
 
 @dataclasses.dataclass(frozen=True)
 class NoOpWeightLoader(WeightLoader):
+    """Keep randomly initialized parameters unchanged."""
+
     def load(self, params: at.Params) -> at.Params:
         return params
 

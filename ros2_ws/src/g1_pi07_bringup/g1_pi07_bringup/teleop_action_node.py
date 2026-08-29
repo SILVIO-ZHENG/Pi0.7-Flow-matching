@@ -6,19 +6,20 @@ from dataclasses import dataclass
 import math
 
 from builtin_interfaces.msg import Time
-from geometry_msgs.msg import PoseStamped
-from g1_pi07.joints import DEFAULT_LAYOUT
-from g1_pi07.teleop.retarget import Dex3Calibration
-from g1_pi07.teleop.retarget import Dex3Retargeter
 from g1_pi07_interfaces.msg import ActionTarget43
 from g1_pi07_interfaces.msg import RobotState43
 from g1_pi07_interfaces.msg import XRHandTargets
+from geometry_msgs.msg import PoseStamped
 from moveit_msgs.msg import MoveItErrorCodes
 from moveit_msgs.srv import GetPositionIK
 import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
+
+from g1_pi07.joints import DEFAULT_LAYOUT
+from g1_pi07.teleop.retarget import Dex3Calibration
+from g1_pi07.teleop.retarget import Dex3Retargeter
 
 
 def _now_message(node: Node) -> Time:
@@ -31,6 +32,8 @@ def _stamp_ns(stamp: Time) -> int:
 
 @dataclass
 class PendingIK:
+    """Paired MoveIt requests and immutable inputs for one XR control sample."""
+
     left_future: object
     right_future: object
     state: RobotState43
@@ -39,6 +42,12 @@ class PendingIK:
 
 
 class TeleopActionNode(Node):
+    """Convert fresh bimanual XR targets into canonical robot action messages.
+
+    Only one dual-arm IK pair is in flight. New XR samples replace the queued
+    sample so delayed IK results cannot build an unbounded command backlog.
+    """
+
     def __init__(self) -> None:
         super().__init__("teleop_action")
         parameters = {
@@ -74,6 +83,7 @@ class TeleopActionNode(Node):
             raise ValueError("ik_timeout_s, max_state_age_ms, and max_xr_age_ms must be positive and finite")
         self._state: RobotState43 | None = None
         self._latest_xr: XRHandTargets | None = None
+        # ``_pending`` owns both arm futures; they are accepted or rejected together.
         self._pending: PendingIK | None = None
         self._step = 0
         self._left_retargeter = self._make_retargeter("left_hand")
@@ -109,12 +119,7 @@ class TeleopActionNode(Node):
             return
         position = np.asarray(message.position, dtype=np.float64)
         validity = np.asarray(message.validity_mask, dtype=np.bool_)
-        if (
-            position.shape != (43,)
-            or validity.shape != (43,)
-            or not validity.all()
-            or not np.isfinite(position).all()
-        ):
+        if position.shape != (43,) or validity.shape != (43,) or not validity.all() or not np.isfinite(position).all():
             self.get_logger().warning("RobotState43 is incomplete or non-finite; teleoperation is holding")
             return
         self._state = message
@@ -170,8 +175,10 @@ class TeleopActionNode(Node):
             values.extend([wrist.position.x, wrist.position.y, wrist.position.z, *quaternion, *keypoints])
             if quaternion.shape != (4,) or np.linalg.norm(quaternion) < 1e-8:
                 return False
-        return len(message.left_hand_keypoints) == 63 and len(message.right_hand_keypoints) == 63 and all(
-            math.isfinite(float(value)) for value in values
+        return (
+            len(message.left_hand_keypoints) == 63
+            and len(message.right_hand_keypoints) == 63
+            and all(math.isfinite(float(value)) for value in values)
         )
 
     def _make_request(self, group: str, pose, state: RobotState43) -> GetPositionIK.Request:
@@ -229,6 +236,7 @@ class TeleopActionNode(Node):
             return
         solution = dict(zip(left_state.name, left_state.position, strict=True))
         solution.update(dict(zip(right_state.name, right_state.position, strict=True)))
+        # The first 14 policy joints are the two seven-joint arms.
         arm_names = DEFAULT_LAYOUT.policy_joint_names[:14]
         missing = [name for name in arm_names if name not in solution]
         if missing:

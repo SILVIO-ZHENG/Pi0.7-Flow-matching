@@ -1,3 +1,5 @@
+"""Validate the common policy inference pipeline."""
+
 from openpi_client import action_chunk_broker
 import pytest
 

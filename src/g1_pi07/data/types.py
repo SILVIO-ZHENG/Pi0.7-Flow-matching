@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Mapping
 
 import numpy as np
 
@@ -30,6 +30,12 @@ def _optional_timestamp(value: int | None, name: str) -> int | None:
 
 @dataclass(frozen=True)
 class RobotStateFrame:
+    """Canonical timestamped 43-DoF robot state plus a 10-value IMU vector.
+
+    ``validity_mask`` marks joints populated by the source message; zero values
+    alone must never be interpreted as valid measurements.
+    """
+
     timestamp_ns: int
     sequence: int
     q: np.ndarray
@@ -56,6 +62,12 @@ class RobotStateFrame:
 
 @dataclass(frozen=True)
 class ActionTargetFrame:
+    """Candidate 43-DoF target tied to the state used for its computation.
+
+    Timing fields are monotonic pipeline markers used to measure inference and
+    transport latency. ``validity_mask`` identifies commanded joint dimensions.
+    """
+
     timestamp_ns: int
     episode_id: str
     step_index: int
@@ -70,12 +82,7 @@ class ActionTargetFrame:
     def __post_init__(self) -> None:
         if self.timestamp_ns < 0 or self.step_index < 0:
             raise ValueError("timestamp_ns and step_index must be non-negative")
-        if (
-            not self.episode_id
-            or self.episode_id in {".", ".."}
-            or "/" in self.episode_id
-            or "\\" in self.episode_id
-        ):
+        if not self.episode_id or self.episode_id in {".", ".."} or "/" in self.episode_id or "\\" in self.episode_id:
             raise ValueError("episode_id must be a single safe name")
         if self.source_state_sequence is not None and self.source_state_sequence < 0:
             raise ValueError("source_state_sequence must be non-negative or None")
@@ -85,9 +92,7 @@ class ActionTargetFrame:
         for name in ("compute_started_ns", "compute_finished_ns", "sent_ns"):
             object.__setattr__(self, name, _optional_timestamp(getattr(self, name), name))
         ordered = [
-            value
-            for value in (self.compute_started_ns, self.compute_finished_ns, self.sent_ns)
-            if value is not None
+            value for value in (self.compute_started_ns, self.compute_finished_ns, self.sent_ns) if value is not None
         ]
         if ordered != sorted(ordered):
             raise ValueError("Action timing must satisfy started <= finished <= sent")
@@ -95,6 +100,8 @@ class ActionTargetFrame:
 
 @dataclass(frozen=True)
 class CameraFrame:
+    """One named RGB frame represented as a non-empty HWC uint8 array."""
+
     timestamp_ns: int
     camera: str
     rgb: np.ndarray
@@ -110,6 +117,12 @@ class CameraFrame:
 
 @dataclass(frozen=True)
 class AlignedStep:
+    """One action-clock sample with its nearest state and camera observations.
+
+    Delta values are signed as ``observation_time - action_time`` and are
+    validated against the embedded frame timestamps at construction time.
+    """
+
     action: ActionTargetFrame
     state: RobotStateFrame
     cameras: Mapping[str, CameraFrame]

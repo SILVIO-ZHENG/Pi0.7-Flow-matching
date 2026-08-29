@@ -1,3 +1,5 @@
+"""Prepare multimodal inputs for PyTorch OpenPI models."""
+
 from collections.abc import Sequence
 import logging
 
@@ -157,6 +159,8 @@ def preprocess_observation_pytorch(
 
     # Create a simple object with the required attributes instead of using the complex Observation class
     class SimpleProcessedObservation:
+        """Lightweight attribute container for preprocessed observation tensors."""
+
         def __init__(self, **kwargs):
             for key, value in kwargs.items():
                 setattr(self, key, value)

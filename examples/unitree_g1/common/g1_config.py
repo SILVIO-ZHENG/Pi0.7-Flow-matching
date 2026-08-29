@@ -13,13 +13,22 @@ import numpy as np
 from g1_pi07.joints import ACTIVE_ACTION_DIM
 from g1_pi07.joints import DEFAULT_LAYOUT
 
-
+# The deployed state/action vector contains only the 28 policy joints.
 STATE_DIM = ACTIVE_ACTION_DIM
+# All three camera streams are resized to the model's square image input.
 MODEL_IMAGE_SIZE = 224
 
 
 @dataclasses.dataclass
 class Args:
+    """Runtime configuration shared by asynchronous and RTC G1 clients.
+
+    Rates are expressed in Hz, age limits in milliseconds, and horizons in
+    action steps. Robot command publication remains controlled independently by
+    ``enable_robot_commands`` and the validated joint-limit file.
+    """
+
+    # ROS graph and image-source configuration.
     config_path: str | None = None
     ros_domain_id: str = "0"
     state_topic: str = "/robot/state43"
@@ -28,11 +37,13 @@ class Args:
     left_wrist_image_topic: str = "/camera/left_wrist/image_raw/compressed"
     right_wrist_image_topic: str = "/camera/right_wrist/image_raw/compressed"
 
+    # Remote policy service and task-conditioning configuration.
     remote_host: str = "127.0.0.1"
     remote_port: int = 8000
     prompt: str = "Use both hands to pick up the box and place it in the target area."
     plan_subtask: bool = True
 
+    # Control-loop, interpolation, and replanning configuration.
     controller_mode: str = "rtc"
     control_hz: float = 20.0
     policy_action_hz: float = 20.0
@@ -44,18 +55,22 @@ class Args:
     rtc_min_horizon: int = 2
     rtc_delay_buffer_size: int = 16
     rtc_initial_delay_steps: int = 2
+    # Freshness and robot-command safety configuration.
     max_state_age_ms: float = 100.0
     max_image_age_ms: float = 150.0
 
     joint_limits_path: str = "examples/unitree_g1/configs/g1_joint_limits.example.json"
     enable_robot_commands: bool = False
     episode_id: str = "inference"
+    # Diagnostic output configuration.
     log_dir: str = "./outputs/g1_policy_logs"
     save_action_chunks: bool = True
 
 
 @dataclasses.dataclass(frozen=True)
 class RobotLayout:
+    """Validated 28-D joint bounds and their URDF confirmation state."""
+
     lower_limits: np.ndarray
     upper_limits: np.ndarray
     limits_confirmed: bool

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import hashlib
 import math
-from typing import Iterable
 
 
 def split_episode_ids(

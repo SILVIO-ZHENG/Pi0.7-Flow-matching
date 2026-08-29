@@ -1,3 +1,5 @@
+"""Construct optimizers and learning-rate schedules for OpenPI models."""
+
 import dataclasses
 from typing import Protocol, runtime_checkable
 
@@ -9,6 +11,8 @@ import openpi.shared.array_typing as at
 
 @runtime_checkable
 class LRScheduleConfig(Protocol):
+    """Factory protocol for Optax learning-rate schedules."""
+
     def create(self) -> optax.Schedule: ...
 
 
@@ -55,6 +59,8 @@ class RsqrtDecaySchedule(LRScheduleConfig):
 
 @runtime_checkable
 class OptimizerConfig(Protocol):
+    """Factory protocol for configured Optax gradient transformations."""
+
     def create(
         self,
         lr: optax.ScalarOrSchedule,

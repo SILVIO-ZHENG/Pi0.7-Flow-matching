@@ -5,6 +5,8 @@
 #                          modular_gemma.py file directly. One of our CI enforces this.
 #                🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨🚨
 # coding=utf-8
+"""Define configuration objects for the local Gemma implementation."""
+
 # Copyright 2024 Google Inc. HuggingFace Inc. team. All rights reserved.
 #
 #

@@ -3,9 +3,8 @@
 
 from __future__ import annotations
 
-import cv2
 from builtin_interfaces.msg import Time
-from g1_pi07.joints import DEFAULT_LAYOUT
+import cv2
 from g1_pi07_interfaces.msg import ActionTarget43
 from g1_pi07_interfaces.msg import RobotState43
 import numpy as np
@@ -19,8 +18,9 @@ from sensor_msgs.msg import CompressedImage
 from examples.unitree_g1.common.g1_config import MODEL_IMAGE_SIZE
 from examples.unitree_g1.common.g1_config import Args
 from examples.unitree_g1.common.g1_config import RobotLayout
+from g1_pi07.joints import DEFAULT_LAYOUT
 
-
+# Exposed for startup logging and dependency diagnostics in deployment clients.
 COMPRESSED_IMAGE_MSG = CompressedImage
 
 
@@ -39,13 +39,22 @@ def decode_compressed_image(message: CompressedImage) -> np.ndarray | None:
 
 
 class G1RosIO:
+    """Own ROS subscriptions and publish canonical 28-D policy actions.
+
+    Observations are considered ready only when the robot state and all three
+    images satisfy configured freshness bounds. Published actions are clipped
+    to the validated layout before expansion into ``ActionTarget43``.
+    """
+
     def __init__(self, node: Node, args: Args, layout: RobotLayout) -> None:
         self._node = node
         self._args = args
         self._layout = layout
+        # The latest state and per-camera stamps form one freshness-gated snapshot.
         self._latest_state: RobotState43 | None = None
         self._images: dict[str, np.ndarray | None] = {"head": None, "left_wrist": None, "right_wrist": None}
         self._image_stamps_ns: dict[str, int | None] = {"head": None, "left_wrist": None, "right_wrist": None}
+        # Command steps are monotonically increasing within one client episode.
         self._command_step = 0
         sensor_qos = QoSProfile(
             reliability=QoSReliabilityPolicy.BEST_EFFORT,
@@ -81,17 +90,15 @@ class G1RosIO:
         image = decode_compressed_image(message)
         if image is not None:
             self._images[name] = image
-            self._image_stamps_ns[name] = (
-                int(message.header.stamp.sec) * 1_000_000_000 + int(message.header.stamp.nanosec)
+            self._image_stamps_ns[name] = int(message.header.stamp.sec) * 1_000_000_000 + int(
+                message.header.stamp.nanosec
             )
 
     def is_ready(self) -> bool:
         now_ns = self._node.get_clock().now().nanoseconds
         state = self._latest_state
         state_stamp_ns = (
-            -1
-            if state is None
-            else int(state.header.stamp.sec) * 1_000_000_000 + int(state.header.stamp.nanosec)
+            -1 if state is None else int(state.header.stamp.sec) * 1_000_000_000 + int(state.header.stamp.nanosec)
         )
         state_ready = (
             state is not None

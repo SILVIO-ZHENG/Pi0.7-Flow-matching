@@ -5,7 +5,6 @@ from __future__ import annotations
 import copy
 import math
 
-from g1_pi07.joints import DEFAULT_LAYOUT
 from g1_pi07_interfaces.msg import RobotState43
 import rclpy
 from rclpy.node import Node
@@ -13,12 +12,20 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Imu
 from sensor_msgs.msg import JointState
 
+from g1_pi07.joints import DEFAULT_LAYOUT
+
 
 def _stamp_ns(stamp) -> int:
     return int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)
 
 
 class StateAdapterNode(Node):
+    """Reorder named joint feedback and attach a freshness-checked IMU sample.
+
+    Missing or non-finite joints remain zero with a false validity bit. Consumers
+    must use the mask rather than interpreting zero as a measured position.
+    """
+
     def __init__(self) -> None:
         super().__init__("state_adapter")
         self.declare_parameter("joint_state_topic", "/joint_states")
@@ -29,6 +36,7 @@ class StateAdapterNode(Node):
         if not math.isfinite(max_imu_age_ms) or max_imu_age_ms < 0:
             raise ValueError("max_imu_age_ms must be finite and non-negative")
         self._max_imu_age_ns = int(max_imu_age_ms * 1e6)
+        # Sequence IDs let downstream actions reference the exact source state.
         self._sequence = 0
         self._latest_imu: Imu | None = None
         self._latest_imu_ns = -1
@@ -58,6 +66,7 @@ class StateAdapterNode(Node):
         output.header = message.header
         output.sequence = self._sequence
         output.name = list(DEFAULT_LAYOUT.full_joint_names)
+        # Output arrays always follow DEFAULT_LAYOUT, independent of source order.
         positions = [0.0] * 43
         velocities = [0.0] * 43
         efforts = [0.0] * 43
@@ -86,17 +95,21 @@ class StateAdapterNode(Node):
         output.validity_mask = validity
 
         joint_stamp_ns = _stamp_ns(message.header.stamp)
-        imu_values = None if self._latest_imu is None else (
-            self._latest_imu.orientation.x,
-            self._latest_imu.orientation.y,
-            self._latest_imu.orientation.z,
-            self._latest_imu.orientation.w,
-            self._latest_imu.angular_velocity.x,
-            self._latest_imu.angular_velocity.y,
-            self._latest_imu.angular_velocity.z,
-            self._latest_imu.linear_acceleration.x,
-            self._latest_imu.linear_acceleration.y,
-            self._latest_imu.linear_acceleration.z,
+        imu_values = (
+            None
+            if self._latest_imu is None
+            else (
+                self._latest_imu.orientation.x,
+                self._latest_imu.orientation.y,
+                self._latest_imu.orientation.z,
+                self._latest_imu.orientation.w,
+                self._latest_imu.angular_velocity.x,
+                self._latest_imu.angular_velocity.y,
+                self._latest_imu.angular_velocity.z,
+                self._latest_imu.linear_acceleration.x,
+                self._latest_imu.linear_acceleration.y,
+                self._latest_imu.linear_acceleration.z,
+            )
         )
         if (
             self._latest_imu is not None

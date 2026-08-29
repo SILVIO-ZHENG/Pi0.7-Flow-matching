@@ -1,3 +1,5 @@
+"""Define composable data transforms for training and inference."""
+
 from collections.abc import Callable, Mapping, Sequence
 import dataclasses
 import re
@@ -22,6 +24,8 @@ S = TypeVar("S")
 
 @runtime_checkable
 class DataTransformFn(Protocol):
+    """Callable protocol for deterministic dictionary-to-dictionary transforms."""
+
     def __call__(self, data: DataDict) -> DataDict:
         """Apply transformation to the data.
 
@@ -108,6 +112,8 @@ class RepackTransform(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class InjectDefaultPrompt(DataTransformFn):
+    """Insert a fallback prompt only when the sample does not provide one."""
+
     prompt: str | None
 
     def __call__(self, data: DataDict) -> DataDict:
@@ -118,6 +124,8 @@ class InjectDefaultPrompt(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class Normalize(DataTransformFn):
+    """Normalize configured leaves with z-score or quantile statistics."""
+
     norm_stats: at.PyTree[NormStats] | None
     # If true, will use quantile normalization. Otherwise, normal z-score normalization will be used.
     use_quantiles: bool = False
@@ -152,6 +160,8 @@ class Normalize(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class Unnormalize(DataTransformFn):
+    """Invert configured z-score or quantile normalization transforms."""
+
     norm_stats: at.PyTree[NormStats] | None
     # If true, will use quantile normalization. Otherwise, normal z-score normalization will be used.
     use_quantiles: bool = False
@@ -188,6 +198,8 @@ class Unnormalize(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class ResizeImages(DataTransformFn):
+    """Resize every observation image with aspect-preserving padding."""
+
     height: int
     width: int
 
@@ -198,6 +210,8 @@ class ResizeImages(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class SubsampleActions(DataTransformFn):
+    """Reduce an action sequence by retaining every ``stride``-th step."""
+
     stride: int
 
     def __call__(self, data: DataDict) -> DataDict:
@@ -251,6 +265,8 @@ class AbsoluteActions(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class TokenizePrompt(DataTransformFn):
+    """Tokenize a required prompt and optional discrete state input."""
+
     tokenizer: _tokenizer.PaligemmaTokenizer
     discrete_state_input: bool = False
 
@@ -325,6 +341,8 @@ class TokenizePi05AndFASTInputs(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class TokenizeFASTInputs(DataTransformFn):
+    """Tokenize prompt and action supervision for FAST autoregressive training."""
+
     tokenizer: _tokenizer.FASTTokenizer
 
     def __call__(self, data: DataDict) -> DataDict:
@@ -347,6 +365,8 @@ class TokenizeFASTInputs(DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class ExtractFASTActions(DataTransformFn):
+    """Decode FAST token predictions into a fixed action horizon and dimension."""
+
     tokenizer: _tokenizer.FASTTokenizer
     action_horizon: int
     action_dim: int

@@ -1,3 +1,5 @@
+"""Provide common image conversion and resizing helpers."""
+
 import functools
 
 import jax

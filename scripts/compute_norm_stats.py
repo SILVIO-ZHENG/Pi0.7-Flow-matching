@@ -20,6 +20,8 @@ import openpi.transforms as transforms
 
 
 class RemoveStrings(transforms.DataTransformFn):
+    """Drop non-numeric task strings before streaming statistics are computed."""
+
     def __call__(self, x: dict) -> dict:
         return {k: v for k, v in x.items() if not np.issubdtype(np.asarray(v).dtype, np.str_)}
 

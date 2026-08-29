@@ -19,7 +19,6 @@ from g1_pi07.joints import ACTIVE_ACTION_DIM
 from g1_pi07.joints import DEFAULT_LAYOUT
 from g1_pi07.joints import FULL_DOF
 
-
 DEFAULT_TASK = "Use both hands to pick up the box and place it in the target area."
 
 
@@ -210,16 +209,13 @@ def convert(
                 "a safety-gate-rejected target cannot be used as an expert action"
             )
         videos = {
-            name: _read_video(episode_dir / "videos" / f"{name}.mp4")
-            for name in ("head", "left_wrist", "right_wrist")
+            name: _read_video(episode_dir / "videos" / f"{name}.mp4") for name in ("head", "left_wrist", "right_wrist")
         }
         counts = {name: len(frames) for name, frames in videos.items()}
         if any(count != len(rows) for count in counts.values()):
             raise ValueError(f"{episode_dir.name} video/step count mismatch: rows={len(rows)}, videos={counts}")
         for camera, frames in videos.items():
-            mismatched = [
-                index for index, frame in enumerate(frames) if tuple(frame.shape) != image_shapes[camera]
-            ]
+            mismatched = [index for index, frame in enumerate(frames) if tuple(frame.shape) != image_shapes[camera]]
             if mismatched:
                 raise ValueError(
                     f"{episode_dir.name}/{camera} resolution differs from the first dataset frame; "

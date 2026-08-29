@@ -1,8 +1,12 @@
+"""Exercise the end-to-end Unitree G1 data and control pipeline."""
+
 from __future__ import annotations
 
+from typing import ClassVar
 import unittest
 
 import numpy as np
+import pytest
 
 from examples.unitree_g1.common.trajectory import make_execution_plan
 from examples.unitree_g1.rtc.rtc_chunker import RtcChunker
@@ -21,9 +25,9 @@ from g1_pi07.joints import MODEL_ACTION_DIM
 from g1_pi07.teleop.ik import DampedLeastSquaresIK
 from g1_pi07.teleop.ik import Pose
 from g1_pi07.teleop.xr import RigidXrCalibration
+from openpi.training.g1_training import INTERVENTION_KEY
 from openpi.training.g1_training import ActionMaskDataset
 from openpi.training.g1_training import AppendMemoryToPrompt
-from openpi.training.g1_training import INTERVENTION_KEY
 from openpi.training.g1_training import SidecarDataset
 from openpi.training.g1_training import read_sidecar
 
@@ -37,27 +41,33 @@ except ModuleNotFoundError:
 
 
 class JointLayoutTest(unittest.TestCase):
+    """Verify lossless conversion across canonical joint representations."""
+
     def test_round_trip_preserves_inactive_joints(self) -> None:
         full = np.arange(FULL_DOF, dtype=np.float32)
         policy = DEFAULT_LAYOUT.full_to_policy(full)
         model = DEFAULT_LAYOUT.policy_to_model(policy)
         rebuilt = DEFAULT_LAYOUT.policy_to_full(DEFAULT_LAYOUT.model_to_policy(model), base_full=full)
         np.testing.assert_array_equal(rebuilt, full)
-        self.assertEqual(model.shape, (MODEL_ACTION_DIM,))
-        self.assertTrue(np.all(model[ACTIVE_ACTION_DIM:] == 0))
+        assert model.shape == (MODEL_ACTION_DIM,)
+        assert np.all(model[ACTIVE_ACTION_DIM:] == 0)
 
 
 class ChunkTest(unittest.TestCase):
+    """Verify horizon padding, masks, and source-index tracking."""
+
     def test_tail_padding_and_masks(self) -> None:
         trajectory = np.arange(3 * ACTIVE_ACTION_DIM, dtype=np.float32).reshape(3, ACTIVE_ACTION_DIM)
         chunk = make_action_chunk(trajectory, 1, horizon=5)
-        self.assertEqual(chunk.actions.shape, (5, MODEL_ACTION_DIM))
+        assert chunk.actions.shape == (5, MODEL_ACTION_DIM)
         np.testing.assert_array_equal(chunk.step_mask, [True, True, False, False, False])
         np.testing.assert_array_equal(chunk.actions[1, :ACTIVE_ACTION_DIM], chunk.actions[-1, :ACTIVE_ACTION_DIM])
-        self.assertEqual(int(chunk.loss_mask.sum()), 2 * ACTIVE_ACTION_DIM)
+        assert int(chunk.loss_mask.sum()) == 2 * ACTIVE_ACTION_DIM
 
 
 class SyncTest(unittest.TestCase):
+    """Verify action-centered state and multi-camera synchronization."""
+
     def test_action_centred_nearest_match(self) -> None:
         sync = ActionCentricSynchronizer(max_state_delta_ms=10, max_camera_delta_ms=20)
         state = RobotStateFrame(
@@ -74,9 +84,9 @@ class SyncTest(unittest.TestCase):
             sync.push_camera(CameraFrame(100_000_000 + delta, name, np.zeros((4, 5, 3), dtype=np.uint8)))
         action = ActionTargetFrame(101_000_000, "ep-1", 0, 7, np.zeros(43))
         aligned = sync.align(action)
-        self.assertEqual(aligned.state.sequence, 7)
-        self.assertEqual(set(aligned.cameras), {"head", "left_wrist", "right_wrist"})
-        self.assertEqual(aligned.state_delta_ns, -1_000_000)
+        assert aligned.state.sequence == 7
+        assert set(aligned.cameras) == {"head", "left_wrist", "right_wrist"}
+        assert aligned.state_delta_ns == -1000000
 
     def test_declared_source_sequence_still_obeys_time_tolerance(self) -> None:
         sync = ActionCentricSynchronizer(max_state_delta_ms=5, max_camera_delta_ms=20)
@@ -86,11 +96,13 @@ class SyncTest(unittest.TestCase):
         for name in sync.camera_names:
             sync.push_camera(CameraFrame(100_000_000, name, np.zeros((2, 2, 3), dtype=np.uint8)))
         action = ActionTargetFrame(100_000_000, "ep", 0, 9, np.zeros(43))
-        with self.assertRaises(AlignmentError):
+        with pytest.raises(AlignmentError):
             sync.align(action)
 
 
 class NormalizationTest(unittest.TestCase):
+    """Verify robust quantile normalization and inverse transforms."""
+
     def test_quantile_round_trip(self) -> None:
         values = np.linspace(-2, 3, 1000, dtype=np.float32)[:, None]
         stats = QuantileStats.fit(values)
@@ -108,6 +120,8 @@ class NormalizationTest(unittest.TestCase):
 
 
 class _TranslationKinematics:
+    """Analytic translation-only kinematics fixture for deterministic IK tests."""
+
     def forward(self, q: np.ndarray) -> Pose:
         return Pose(q[:3], np.asarray([0.0, 0.0, 0.0, 1.0]))
 
@@ -118,6 +132,8 @@ class _TranslationKinematics:
 
 
 class IKTest(unittest.TestCase):
+    """Verify bounded damped least-squares inverse kinematics."""
+
     def test_dls_reaches_simple_translation(self) -> None:
         solver = DampedLeastSquaresIK(
             _TranslationKinematics(),
@@ -126,11 +142,13 @@ class IKTest(unittest.TestCase):
             max_iterations=30,
         )
         result = solver.solve(Pose(np.asarray([0.2, -0.1, 0.3]), np.asarray([0, 0, 0, 1])), np.zeros(3))
-        self.assertTrue(result.converged)
+        assert result.converged
         np.testing.assert_allclose(result.q, [0.2, -0.1, 0.3], atol=2e-3)
 
 
 class XrCalibrationTest(unittest.TestCase):
+    """Verify rigid XR-to-robot frame calibration behavior."""
+
     def test_scale_rotation_and_translation(self) -> None:
         # 180 degrees about z: (x, y) -> (-x, -y).
         calibration = RigidXrCalibration(
@@ -143,10 +161,14 @@ class XrCalibrationTest(unittest.TestCase):
 
 
 class _EpisodeMeta:
-    episodes = [{"length": 3}]
+    """Minimal episode metadata fixture for wrapped dataset tests."""
+
+    episodes: ClassVar[list[dict[str, int]]] = [{"length": 3}]
 
 
 class _TinyEpisodeDataset:
+    """Small deterministic dataset fixture with one short episode."""
+
     meta = _EpisodeMeta()
 
     def __getitem__(self, index: int) -> dict:
@@ -157,6 +179,8 @@ class _TinyEpisodeDataset:
 
 
 class ActionMaskDatasetTest(unittest.TestCase):
+    """Verify action masks and sidecar metadata injection."""
+
     def test_sidecar_preserves_episode_boundary_for_padding_mask(self) -> None:
         wrapped = SidecarDataset(_TinyEpisodeDataset(), {})
         masked = ActionMaskDataset(wrapped, action_horizon=5, valid_action_dim=28)
@@ -168,26 +192,28 @@ class ActionMaskDatasetTest(unittest.TestCase):
             _TinyEpisodeDataset(),
             {(0, 0): {"is_human_intervention": "false"}},
         )
-        self.assertEqual(wrapped[0][INTERVENTION_KEY], 0.0)
+        assert wrapped[0][INTERVENTION_KEY] == 0.0
 
     def test_duplicate_sidecar_key_is_rejected(self) -> None:
-        import tempfile
         from pathlib import Path
+        import tempfile
 
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "labels.jsonl"
             row = '{"episode_index": 0, "frame_index": 1}'
             path.write_text(f"{row}\n{row}\n", encoding="utf-8")
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError, match="Duplicate episode/frame key"):
                 read_sidecar(path)
 
     def test_memory_is_appended_before_robot_transform(self) -> None:
         item = AppendMemoryToPrompt()({"prompt": "Pick the box", "g1_memory": "Both hands are aligned."})
-        self.assertEqual(item["prompt"], "Pick the box\nMemory: Both hands are aligned.")
+        assert item["prompt"] == "Pick the box\nMemory: Both hands are aligned."
 
 
 @unittest.skipIf(torch is None, "PyTorch training dependencies are not installed")
 class KnowledgeInsulationTest(unittest.TestCase):
+    """Verify gradient isolation between VLM and action-expert objectives."""
+
     def test_flow_gradient_is_removed_from_vlm_only(self) -> None:
         vlm = torch.nn.Parameter(torch.tensor(2.0))
         expert = torch.nn.Parameter(torch.tensor(3.0))
@@ -197,19 +223,21 @@ class KnowledgeInsulationTest(unittest.TestCase):
             vlm_parameters=[vlm],
             config=JointObjectiveConfig(enabled=True),
         )
-        self.assertAlmostEqual(float(vlm.grad), 4.0)
-        self.assertAlmostEqual(float(expert.grad), 10.0)
-        self.assertAlmostEqual(float(result["fast_ce_loss"]), 4.0)
+        assert float(vlm.grad) == pytest.approx(4.0)
+        assert float(expert.grad) == pytest.approx(10.0)
+        assert float(result["fast_ce_loss"]) == pytest.approx(4.0)
 
 
 class RollingControllerTest(unittest.TestCase):
+    """Verify latency alignment and fallback behavior of rolling execution."""
+
     def test_observed_latency_skips_committed_prefix(self) -> None:
         controller = RollingChunkController(horizon=5, min_replan_steps=1, initial_delay_steps=1, blend_steps=0)
         controller.begin_request(7)
         controller.next_action(np.zeros(2, dtype=np.float32))
         controller.next_action(np.zeros(2, dtype=np.float32))
         delay = controller.accept(7, np.arange(10, dtype=np.float32).reshape(5, 2))
-        self.assertEqual(delay, 2)
+        assert delay == 2
         np.testing.assert_array_equal(controller.next_action(np.zeros(2)), [4.0, 5.0])
 
     def test_short_suffix_is_zero_padded_to_full_prefix_horizon(self) -> None:
@@ -219,30 +247,34 @@ class RollingControllerTest(unittest.TestCase):
         for _ in range(4):
             controller.next_action(np.zeros(2, dtype=np.float32))
         context = controller.begin_request(1)
-        self.assertEqual(context.prefix.shape, (5, 2))
+        assert context.prefix.shape == (5, 2)
         np.testing.assert_array_equal(context.prefix[0], [8.0, 9.0])
         np.testing.assert_array_equal(context.prefix[1:], np.zeros((4, 2), dtype=np.float32))
 
 
 class RtcChunkerTest(unittest.TestCase):
+    """Verify RTC request lifecycle, prefixes, and stale-result rejection."""
+
     def test_failed_request_can_be_cancelled_and_replanned(self) -> None:
         chunker = RtcChunker(horizon=5, min_horizon=1, delay_buffer_size=4, initial_delay_steps=1)
         chunker.make_request_context(4)
-        self.assertFalse(chunker.should_request())
-        self.assertTrue(chunker.cancel_request(4))
-        self.assertTrue(chunker.should_request())
+        assert not chunker.should_request()
+        assert chunker.cancel_request(4)
+        assert chunker.should_request()
 
     def test_unsolicited_result_is_rejected(self) -> None:
         chunker = RtcChunker(horizon=5, min_horizon=1, delay_buffer_size=4, initial_delay_steps=1)
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="request_id does not match"):
             chunker.accept_new_chunk(7, np.zeros((5, 2), dtype=np.float32))
 
 
 class ExecutionPlanTest(unittest.TestCase):
+    """Verify action interpolation, clipping, and invalid-input rejection."""
+
     def test_non_finite_policy_action_is_rejected(self) -> None:
         actions = np.zeros((5, 28), dtype=np.float32)
         actions[0, 0] = np.nan
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="must not contain NaN/Inf"):
             make_execution_plan(
                 actions,
                 state_dim=28,

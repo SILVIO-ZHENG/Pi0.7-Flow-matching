@@ -27,6 +27,8 @@ class DroidActionSpace(Enum):
 
 @dataclasses.dataclass
 class RLDSDataset:
+    """One weighted RLDS source and its optional episode filter."""
+
     name: str
     version: str
     weight: float
@@ -34,6 +36,8 @@ class RLDSDataset:
 
 
 class DroidRldsDataset:
+    """Build the mixed, transformed, and batched DROID RLDS input pipeline."""
+
     def __init__(
         self,
         data_dir: str,
