@@ -1,3 +1,5 @@
+"""Implement Gemma and PaliGemma components used by PyTorch Pi0."""
+
 from typing import Literal
 
 import torch
@@ -9,6 +11,8 @@ from transformers.models.gemma import modeling_gemma
 
 
 class PaliGemmaWithExpertModel(nn.Module):
+    """Combine a PaliGemma VLM with a separate action-expert decoder."""
+
     def __init__(
         self,
         vlm_config,

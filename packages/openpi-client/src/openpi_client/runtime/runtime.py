@@ -1,3 +1,5 @@
+"""Coordinate environment observations, policy agents, and action subscribers."""
+
 import logging
 import threading
 import time

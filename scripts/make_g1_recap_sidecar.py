@@ -96,7 +96,9 @@ def main() -> None:
     )
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--annotations", type=Path, help="Manually labelled success/subtask/memory JSON or JSONL")
-    parser.add_argument("--interventions", type=Path, help="Manually labelled intervention frame ranges in JSON or JSONL")
+    parser.add_argument(
+        "--interventions", type=Path, help="Manually labelled intervention frame ranges in JSON or JSONL"
+    )
     args = parser.parse_args()
 
     mapping = json.loads(args.episode_map.read_text(encoding="utf-8"))

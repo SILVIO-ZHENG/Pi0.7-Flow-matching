@@ -7,13 +7,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
-from g1_pi07.data.storage import EpisodeWriter
-from g1_pi07.data.time_sync import ActionCentricSynchronizer
-from g1_pi07.data.time_sync import AlignmentError
-from g1_pi07.data.types import ActionTargetFrame
-from g1_pi07.data.types import CameraFrame
-from g1_pi07.data.types import RobotStateFrame
-from g1_pi07.joints import DEFAULT_LAYOUT
 from g1_pi07_interfaces.msg import ActionTarget43
 from g1_pi07_interfaces.msg import RobotState43
 import numpy as np
@@ -22,6 +15,14 @@ from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import CompressedImage
 from sensor_msgs.msg import JointState
+
+from g1_pi07.data.storage import EpisodeWriter
+from g1_pi07.data.time_sync import ActionCentricSynchronizer
+from g1_pi07.data.time_sync import AlignmentError
+from g1_pi07.data.types import ActionTargetFrame
+from g1_pi07.data.types import CameraFrame
+from g1_pi07.data.types import RobotStateFrame
+from g1_pi07.joints import DEFAULT_LAYOUT
 
 
 def _stamp_ns(stamp) -> int:
@@ -59,11 +60,19 @@ def _parse_success(value: str) -> bool | None:
 
 @dataclass(frozen=True)
 class PendingAction:
+    """Action waiting for state/camera streams to reach its timestamp."""
+
     frame: ActionTargetFrame
     received_ns: int
 
 
 class EpisodeRecorderNode(Node):
+    """Align ROS streams on action time and build one deterministic episode.
+
+    Actions may wait briefly for later-arriving camera frames. The bounded
+    pending queue prevents memory growth when a required stream is unavailable.
+    """
+
     def __init__(self) -> None:
         super().__init__("episode_recorder")
         defaults = {
@@ -106,7 +115,9 @@ class EpisodeRecorderNode(Node):
             max_camera_delta_ms=float(self.get_parameter("max_camera_delta_ms").value),
         )
         self._dropped = 0
+        # Pending actions are ordered by receipt time and flushed oldest first.
         self._pending_actions: deque[PendingAction] = deque()
+        # Approved commands are matched back to candidate actions by timestamp.
         self._applied_commands: dict[int, np.ndarray] = {}
         self._command_stamps: deque[int] = deque()
         self._alignment_wait_ns = int(float(self.get_parameter("alignment_wait_ms").value) * 1e6)

@@ -1,3 +1,5 @@
+"""Define common model types, preprocessing, and sampling interfaces."""
+
 import abc
 from collections.abc import Sequence
 import dataclasses

@@ -1,3 +1,5 @@
+"""Configure Pi0 model construction and input shapes."""
+
 import dataclasses
 from typing import TYPE_CHECKING
 
@@ -38,6 +40,8 @@ class RTCTrainingConfig:
 
 @dataclasses.dataclass(frozen=True)
 class Pi0Config(_model.BaseModelConfig):
+    """Model, action-shape, tokenizer, and RTC settings for Pi0."""
+
     dtype: str = "bfloat16"
     paligemma_variant: _gemma.Variant = "gemma_2b"
     action_expert_variant: _gemma.Variant = "gemma_300m"
@@ -79,12 +83,13 @@ class Pi0Config(_model.BaseModelConfig):
             raise ValueError("The joint FAST-CE + Flow objective supports only the pi0.5 model path")
         if self.fast_max_token_len <= 1:
             raise ValueError("fast_max_token_len must be greater than one")
-        if self.rtc_training.execution_horizon is not None:
-            if self.rtc_training.execution_horizon > self.action_horizon:
-                raise ValueError("RTC execution_horizon must not exceed action_horizon")
-        if self.rtc_training.max_prefix_steps is not None:
-            if self.rtc_training.max_prefix_steps > self.action_horizon:
-                raise ValueError("RTC max_prefix_steps must not exceed action_horizon")
+        if (
+            self.rtc_training.execution_horizon is not None
+            and self.rtc_training.execution_horizon > self.action_horizon
+        ):
+            raise ValueError("RTC execution_horizon must not exceed action_horizon")
+        if self.rtc_training.max_prefix_steps is not None and self.rtc_training.max_prefix_steps > self.action_horizon:
+            raise ValueError("RTC max_prefix_steps must not exceed action_horizon")
 
     @property
     @override

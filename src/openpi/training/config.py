@@ -66,6 +66,8 @@ class AssetsConfig:
 
 @dataclasses.dataclass(frozen=True)
 class DataConfig:
+    """Resolved dataset, transform, normalization, and loader configuration."""
+
     # LeRobot repo id. If None, fake data will be created.
     repo_id: str | None = None
     # Local LeRobot dataset root; when empty, use the default LeRobot cache.
@@ -123,6 +125,8 @@ class DataConfig:
 
 
 class GroupFactory(Protocol):
+    """Build a transform group for a concrete model configuration."""
+
     def __call__(self, model_config: _model.BaseModelConfig) -> _transforms.Group:
         """Create a group."""
 
@@ -201,6 +205,8 @@ class ModelTransformFactory(GroupFactory):
 
 @dataclasses.dataclass(frozen=True)
 class DataConfigFactory(abc.ABC):
+    """Base factory that resolves assets and produces a final data config."""
+
     # The LeRobot repo id.
     repo_id: str = tyro.MISSING
     # Determines how the assets will be loaded.
@@ -238,6 +244,8 @@ class DataConfigFactory(abc.ABC):
 
 @dataclasses.dataclass(frozen=True)
 class FakeDataConfig(DataConfigFactory):
+    """Create synthetic data matching the selected model's input specification."""
+
     repo_id: str = "fake"
 
     @override
@@ -247,6 +255,8 @@ class FakeDataConfig(DataConfigFactory):
 
 @dataclasses.dataclass(frozen=True)
 class SimpleDataConfig(DataConfigFactory):
+    """Compose caller-provided data and model transform factories."""
+
     # Factory for the data transforms.
     data_transforms: tyro.conf.Suppress[GroupFactory] = dataclasses.field(default_factory=GroupFactory)
     # Factory for the model transforms.
@@ -263,6 +273,8 @@ class SimpleDataConfig(DataConfigFactory):
 
 @dataclasses.dataclass(frozen=True)
 class LeRobotAlohaDataConfig(DataConfigFactory):
+    """Configure LeRobot ALOHA field mapping and action-space transforms."""
+
     # If true, will convert joint dimensions to deltas with respect to the current state before passing to the model.
     # Gripper dimensions will remain in absolute values.
     use_delta_joint_actions: bool = True
@@ -599,6 +611,8 @@ class LeRobotExampleDataConfig(DataConfigFactory):
 
 @dataclasses.dataclass(frozen=True)
 class TrainConfig:
+    """Complete experiment configuration for model, data, optimizer, and checkpoints."""
+
     # Name of the config. Must be unique. Will be used to reference this config.
     name: tyro.conf.Suppress[str]
     # Project name.
@@ -705,7 +719,9 @@ class TrainConfig:
         if self.joint_objective.enabled and not getattr(self.model, "joint_fast_objective", False):
             raise ValueError("joint_objective requires model.joint_fast_objective=True")
         if self.joint_objective.enabled and self.knowledge_insulation.enabled:
-            raise ValueError("The joint objective already isolates gradients and cannot permanently freeze KnowledgeInsulation")
+            raise ValueError(
+                "The joint objective already isolates gradients and cannot permanently freeze KnowledgeInsulation"
+            )
 
 
 # Use `get_config` if you need to get a config by name in your code.

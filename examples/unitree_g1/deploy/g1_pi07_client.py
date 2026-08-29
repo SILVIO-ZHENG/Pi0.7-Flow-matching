@@ -15,17 +15,18 @@ import rclpy
 from rclpy.node import Node
 import tyro
 
+# Allow direct script execution without requiring an editable package install.
 OPENPI_ROOT = Path(__file__).resolve().parents[3]
 if str(OPENPI_ROOT) not in sys.path:
     sys.path.insert(0, str(OPENPI_ROOT))
 
 from examples.unitree_g1.common.async_policy import AsyncPolicyProcess
-from examples.unitree_g1.common.ros_io import COMPRESSED_IMAGE_MSG
-from examples.unitree_g1.common.ros_io import G1RosIO
 from examples.unitree_g1.common.g1_config import STATE_DIM
 from examples.unitree_g1.common.g1_config import Args
 from examples.unitree_g1.common.g1_config import build_robot_layout
 from examples.unitree_g1.common.g1_config import merge_config_file
+from examples.unitree_g1.common.ros_io import COMPRESSED_IMAGE_MSG
+from examples.unitree_g1.common.ros_io import G1RosIO
 from examples.unitree_g1.common.trajectory import make_execution_plan
 from examples.unitree_g1.rtc.rtc_chunker import RtcChunker
 
@@ -59,7 +60,11 @@ def _format_timing(result: dict) -> str:
 
 
 class G1DualHandsController(Node):
-    """Coordinate the control loop and asynchronous inference."""
+    """Coordinate non-blocking policy inference and open-loop chunk execution.
+
+    The ROS timer never waits for the policy server. A bounded execution queue
+    feeds actions at control rate while a separate process computes the next chunk.
+    """
 
     def __init__(self, args: Args) -> None:
         super().__init__("g1_pi07_async_client")
@@ -72,11 +77,13 @@ class G1DualHandsController(Node):
         self.log_dir = Path(args.log_dir)
         self.log_dir.mkdir(parents=True, exist_ok=True)
 
+        # Queue entries are already interpolated and clipped 28-D robot targets.
         self.execution_queue: deque[np.ndarray] = deque()
         self.last_action: np.ndarray | None = None
         self.inference_idx = 0
         self.last_request_time = 0.0
         self.submit_next_after_result = False
+        # Request timestamps are keyed by monotonic inference IDs for latency logs.
         self.request_started_ns: dict[int, int] = {}
         self.last_compute_window: tuple[int, int] | None = None
         self.policy_failed = False
@@ -198,7 +205,11 @@ class G1DualHandsController(Node):
 
 
 class G1DualHandsRtcController(Node):
-    """RTC controller with a control loop, separate inference process, and hard-prefix conditioning."""
+    """Run RTC inference with latency-aware hard-prefix conditioning.
+
+    Actions committed during inference are sent back as a prefix so the model's
+    new chunk remains continuous with commands already selected for execution.
+    """
 
     def __init__(self, args: Args) -> None:
         super().__init__("g1_pi07_rtc_client")

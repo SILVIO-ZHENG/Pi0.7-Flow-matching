@@ -1,3 +1,5 @@
+"""Convert ALOHA observations and actions for OpenPI inference."""
+
 import dataclasses
 from typing import ClassVar
 

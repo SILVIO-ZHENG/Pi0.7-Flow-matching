@@ -1,3 +1,5 @@
+"""Validate shared image conversion and resizing helpers."""
+
 import jax.numpy as jnp
 
 from openpi.shared import image_tools

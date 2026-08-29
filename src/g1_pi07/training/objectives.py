@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 import math
-from typing import Callable, Iterable
 
 
 @dataclass(frozen=True)
 class JointObjectiveConfig:
+    """Weights and gradient-isolation policy for joint FAST-CE/Flow training."""
+
     enabled: bool = False
     fast_ce_weight: float = 1.0
     flow_weight: float = 1.0
@@ -50,13 +52,14 @@ def knowledge_insulated_backward(
         (config.flow_weight * flow_loss).backward()
         return {"flow_loss": flow_loss.detach(), "fast_ce_loss": None}
 
+    # FAST gradients update the VLM before it is frozen for the Flow branch.
     fast_loss = fast_loss_fn()
     vlm_parameters = list(vlm_parameters)
     if config.stop_flow_gradient_to_vlm:
         requires_grad = [parameter.requires_grad for parameter in vlm_parameters]
         try:
             for parameter in vlm_parameters:
-                parameter.requires_grad_(False)
+                parameter.requires_grad_(False)  # noqa: FBT003 - PyTorch exposes a positional flag.
             flow_loss = flow_loss_fn()
         finally:
             for parameter, enabled in zip(vlm_parameters, requires_grad, strict=True):

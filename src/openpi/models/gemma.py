@@ -43,6 +43,8 @@ PALIGEMMA_VOCAB_SIZE = 257_152
 
 @dataclasses.dataclass
 class Config:
+    """Structural dimensions and optional LoRA settings for one Gemma expert."""
+
     width: int
     depth: int
     mlp_dim: int
@@ -111,6 +113,8 @@ def get_config(variant: Variant) -> Config:
 
 @at.typecheck
 class RMSNorm(nn.Module):
+    """Root-mean-square normalization with optional adaptive conditioning."""
+
     @nn.compact
     def __call__(self, x, cond):
         dtype = x.dtype  # original dtype, could be half-precision

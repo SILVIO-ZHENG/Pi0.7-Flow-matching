@@ -15,8 +15,6 @@ try:
 except ModuleNotFoundError:  # Allow data-only tools to run without the GPU training stack.
     torch = None
 
-from g1_pi07.training.objectives import JointObjectiveConfig
-
 
 G1_PREFIX = "g1_"
 ADVANTAGE_KEY = "g1_advantage_indicator"
@@ -335,9 +333,7 @@ def apply_knowledge_insulation(model: torch.nn.Module, config: KnowledgeInsulati
 def _standardize_record(record: Mapping[str, Any], *, include_text: bool = True) -> dict[str, Any]:
     output: dict[str, Any] = {}
     output[ADVANTAGE_KEY] = float(record.get("advantage_indicator", record.get("advantage", 0.0)))
-    output[USE_ADVANTAGE_KEY] = float(
-        _as_bool(record.get("use_advantage", bool(output[ADVANTAGE_KEY])))
-    )
+    output[USE_ADVANTAGE_KEY] = float(_as_bool(record.get("use_advantage", bool(output[ADVANTAGE_KEY]))))
     output[INTERVENTION_KEY] = float(
         _as_bool(record.get("is_human_intervention", record.get("human_intervention", False)))
     )

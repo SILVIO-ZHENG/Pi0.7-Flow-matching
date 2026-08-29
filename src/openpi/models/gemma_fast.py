@@ -75,6 +75,8 @@ def get_config(variant):
 
 @at.typecheck
 class Einsum(nn.Module):
+    """Learned weight tensor applied through a caller-provided einsum equation."""
+
     shape: tuple[int, ...]
 
     @nn.compact
@@ -86,6 +88,8 @@ class Einsum(nn.Module):
 
 @at.typecheck
 class RMSNorm(nn.Module):
+    """Numerically stable root-mean-square normalization layer."""
+
     @nn.compact
     def __call__(self, x):
         dtype = x.dtype  # original dtype, could be half-precision

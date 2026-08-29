@@ -1,3 +1,5 @@
+"""Provide shared utilities for OpenPI training and evaluation."""
+
 from collections.abc import Callable
 from typing import Any
 
@@ -13,6 +15,8 @@ from openpi.shared import array_typing as at
 @at.typecheck
 @struct.dataclass
 class TrainState:
+    """Replicated training step, model parameters, optimizer state, and EMA state."""
+
     step: at.Int[at.ArrayLike, ""]
     params: nnx.State
     model_def: nnx.GraphDef[_model.BaseModel]

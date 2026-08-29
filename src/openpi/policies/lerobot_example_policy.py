@@ -1,3 +1,5 @@
+"""Provide an example LeRobot observation transform for OpenPI."""
+
 import dataclasses
 
 import einops

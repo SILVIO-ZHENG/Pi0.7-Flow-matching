@@ -1,3 +1,5 @@
+"""Define callbacks that receive actions from the runtime."""
+
 import abc
 
 

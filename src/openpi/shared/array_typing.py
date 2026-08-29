@@ -1,3 +1,5 @@
+"""Define array-shape annotations and runtime type-checking helpers."""
+
 import contextlib
 import functools as ft
 import inspect

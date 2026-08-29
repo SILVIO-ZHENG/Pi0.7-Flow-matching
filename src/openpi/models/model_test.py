@@ -1,3 +1,5 @@
+"""Validate shared model preprocessing and sampling utilities."""
+
 from flax import nnx
 import jax
 import pytest

@@ -1,3 +1,5 @@
+"""Provide Flax NNX utilities for model inspection and updates."""
+
 from collections.abc import Callable
 import dataclasses
 import functools

@@ -7,14 +7,17 @@ sending commands; :meth:`G1JointLayout.reorder_full` exists for that purpose.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, Sequence
+from typing import Final
 
 import numpy as np
 
-
+# Full state: legs (12), waist (3), arms (14), and Dex3 hands (14).
 FULL_DOF: Final = 43
+# Policy-controlled dimensions: arms and hands only.
 ACTIVE_ACTION_DIM: Final = 28
+# Model width includes four masked padding dimensions after the policy action.
 MODEL_ACTION_DIM: Final = 32
 
 LEG_JOINT_NAMES: Final = (
@@ -87,7 +90,11 @@ def _as_last_dim(array: Sequence[float] | np.ndarray, expected: int, name: str) 
 
 @dataclass(frozen=True)
 class G1JointLayout:
-    """Defines the only accepted joint order at every project boundary."""
+    """Define the canonical joint order at every project boundary.
+
+    All conversions preserve leading batch dimensions. Legs and waist are
+    copied from ``base_full`` when policy actions are expanded to 43 dimensions.
+    """
 
     full_joint_names: tuple[str, ...] = FULL_JOINT_NAMES
     policy_joint_names: tuple[str, ...] = POLICY_JOINT_NAMES

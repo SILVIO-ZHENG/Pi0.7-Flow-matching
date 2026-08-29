@@ -1,3 +1,5 @@
+"""Buffer and serve asynchronous action chunks to a real-time control loop."""
+
 from typing import Dict
 
 import numpy as np

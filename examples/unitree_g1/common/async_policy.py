@@ -63,7 +63,12 @@ def _policy_worker(
 
 
 class AsyncPolicyProcess:
-    """Manage a policy inference process while retaining only the latest request."""
+    """Manage policy inference while retaining only the latest request.
+
+    Queue depth is intentionally one: stale observations are discarded before a
+    new request is submitted, and response IDs prevent old results from being
+    applied after a newer observation has superseded them.
+    """
 
     def __init__(self, *, remote_host: str, remote_port: int) -> None:
         self._ctx = mp.get_context("spawn")
@@ -75,6 +80,7 @@ class AsyncPolicyProcess:
             args=(self._request_queue, self._response_queue, self._stop_event, remote_host, remote_port),
             daemon=True,
         )
+        # IDs provide ordering across independently buffered request/response queues.
         self._next_request_id = 0
         self._latest_request_id = -1
         self._inflight = False

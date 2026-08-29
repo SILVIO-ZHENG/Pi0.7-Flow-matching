@@ -1,3 +1,5 @@
+"""Validate NumPy serialization through MessagePack."""
+
 import numpy as np
 import pytest
 import tree

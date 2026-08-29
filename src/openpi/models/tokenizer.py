@@ -1,3 +1,5 @@
+"""Tokenize multimodal prompts and continuous robot actions."""
+
 import logging
 import os
 
@@ -12,6 +14,8 @@ import openpi.shared.download as download
 
 
 class PaligemmaTokenizer:
+    """Tokenize prompts and optional discretized state for PaliGemma inputs."""
+
     def __init__(self, max_len: int = 48):
         self._max_len = max_len
 
@@ -54,6 +58,8 @@ class PaligemmaTokenizer:
 
 
 class FASTTokenizer:
+    """Encode continuous action chunks with the FAST tokenizer vocabulary."""
+
     def __init__(self, max_len: int = 256, fast_tokenizer_path: str = "physical-intelligence/fast"):
         self._max_len = max_len
 

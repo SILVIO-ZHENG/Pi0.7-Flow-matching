@@ -16,6 +16,8 @@ from g1_pi07.teleop.retarget import Dex3Retargeter
 
 @dataclass(frozen=True)
 class TeleopTargets:
+    """Synchronized 43-D, 28-D, and 32-D targets from one XR sample."""
+
     full_position: np.ndarray
     policy_position: np.ndarray
     model_position: np.ndarray
@@ -25,6 +27,12 @@ class TeleopTargets:
 
 @dataclass
 class BimanualTeleopMapper:
+    """Map dual wrist poses and hand keypoints into canonical robot targets.
+
+    Arm IK uses the current arm state as its seed. Hand retargeting produces the
+    final 14 policy dimensions after the two seven-joint arm solutions.
+    """
+
     left_ik: DampedLeastSquaresIK
     right_ik: DampedLeastSquaresIK
     left_hand: Dex3Retargeter
@@ -41,6 +49,7 @@ class BimanualTeleopMapper:
         left_keypoints: np.ndarray,
         right_keypoints: np.ndarray,
     ) -> TeleopTargets:
+        # Policy order is left arm, right arm, left hand, then right hand.
         policy_seed = self.layout.full_to_policy(current_q43)
         left_result = self.left_ik.solve(left_wrist, policy_seed[:7])
         right_result = self.right_ik.solve(right_wrist, policy_seed[7:14])

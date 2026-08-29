@@ -1,3 +1,5 @@
+"""Convert DROID observations and actions for OpenPI inference."""
+
 import dataclasses
 
 import einops
@@ -29,6 +31,8 @@ def _parse_image(image) -> np.ndarray:
 
 @dataclasses.dataclass(frozen=True)
 class DroidInputs(transforms.DataTransformFn):
+    """Map raw DROID observations into the model's canonical input schema."""
+
     # Determines which model will be used.
     model_type: _model.ModelType
 
@@ -76,6 +80,8 @@ class DroidInputs(transforms.DataTransformFn):
 
 @dataclasses.dataclass(frozen=True)
 class DroidOutputs(transforms.DataTransformFn):
+    """Trim model output to the eight-dimensional DROID action space."""
+
     def __call__(self, data: dict) -> dict:
         # Only return the first 8 dims.
         return {"actions": np.asarray(data["actions"][:, :8])}

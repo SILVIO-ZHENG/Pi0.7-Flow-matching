@@ -474,6 +474,8 @@ def convert_pi0_checkpoint(
     # Create configs based on checkpoint path
     # All models use the same PaliGemma config structure
     class PaliGemmaConfig:
+        """Minimal configuration object used during checkpoint conversion."""
+
         def __init__(self):
             self.vision_config = type(
                 "obj",

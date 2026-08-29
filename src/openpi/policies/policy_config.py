@@ -1,3 +1,5 @@
+"""Create policies and preprocessing transforms from training configs."""
+
 import logging
 import os
 import pathlib

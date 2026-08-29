@@ -5,13 +5,14 @@ from __future__ import annotations
 
 from pathlib import Path
 import sys
-import unittest
 
 import numpy as np
 
 OPENPI_ROOT = Path(__file__).resolve().parents[3]
 if str(OPENPI_ROOT) not in sys.path:
     sys.path.insert(0, str(OPENPI_ROOT))
+
+import pytest
 
 from examples.unitree_g1.rtc.rtc_chunker import RtcChunker
 
@@ -66,7 +67,7 @@ def test_rtc_chunker_rejects_stale_response_when_current_chunk_exists() -> None:
 
     chunker.make_request_context(999)
     merged, delay = chunker.accept_new_chunk(999, first)
-    with unittest.TestCase().assertRaises(ValueError):
+    with pytest.raises(ValueError, match="request_id does not match"):
         chunker.accept_new_chunk(123, stale)
 
     assert delay == 1

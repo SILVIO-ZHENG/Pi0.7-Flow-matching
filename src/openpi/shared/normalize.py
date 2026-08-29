@@ -1,3 +1,5 @@
+"""Represent and apply dataset normalization statistics."""
+
 import json
 import pathlib
 
@@ -8,6 +10,8 @@ import pydantic
 
 @pydantic.dataclasses.dataclass
 class NormStats:
+    """Mean/std and optional quantile statistics for one data field."""
+
     mean: numpydantic.NDArray
     std: numpydantic.NDArray
     q01: numpydantic.NDArray | None = None  # 1st quantile
@@ -118,6 +122,8 @@ class RunningStats:
 
 
 class _NormStatsDict(pydantic.BaseModel):
+    """Pydantic wrapper used to serialize a keyed normalization-stat tree."""
+
     norm_stats: dict[str, NormStats]
 
 

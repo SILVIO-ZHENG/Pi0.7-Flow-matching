@@ -1,3 +1,5 @@
+"""Validate client-side image encoding and resizing helpers."""
+
 import numpy as np
 
 import openpi_client.image_tools as image_tools

@@ -97,9 +97,13 @@ class G1Inputs(transforms.DataTransformFn):
         # Keep numeric RECAP/RL sidecar fields until DataLoaderImpl separates
         # them from the Observation. Text memory is consumed before this
         # transform; action masks are copied above under model-facing names.
-        for key, value in data.items():
-            if key.startswith("g1_") and key not in {"g1_subtask", "g1_memory", "g1_next_memory"}:
-                inputs[key] = value
+        inputs.update(
+            {
+                key: value
+                for key, value in data.items()
+                if key.startswith("g1_") and key not in {"g1_subtask", "g1_memory", "g1_next_memory"}
+            }
+        )
         return inputs
 
 

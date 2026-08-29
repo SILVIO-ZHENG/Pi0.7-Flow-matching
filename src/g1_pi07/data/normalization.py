@@ -11,6 +11,12 @@ import numpy as np
 
 @dataclass(frozen=True)
 class QuantileStats:
+    """Per-dimension robust bounds fitted only from the training split.
+
+    Values are mapped from ``[q01, q99]`` to ``[-1, 1]``. Dimensions whose
+    quantile range is smaller than ``eps`` are treated as constant.
+    """
+
     q01: np.ndarray
     q99: np.ndarray
     count: int
@@ -31,7 +37,7 @@ class QuantileStats:
         object.__setattr__(self, "q99", q99)
 
     @classmethod
-    def fit(cls, values: np.ndarray, *, valid_rows: np.ndarray | None = None) -> "QuantileStats":
+    def fit(cls, values: np.ndarray, *, valid_rows: np.ndarray | None = None) -> QuantileStats:
         array = np.asarray(values, dtype=np.float32)
         if array.ndim != 2 or len(array) == 0:
             raise ValueError("values must be a non-empty [N,D] array")
@@ -64,6 +70,7 @@ class QuantileStats:
             raise ValueError("The final values dimension does not match the statistics dimension")
         if not np.isfinite(array).all():
             raise ValueError("values must not contain NaN or Inf")
+        # Constant dimensions map to zero instead of amplifying numerical noise.
         dynamic = (self.q99 - self.q01) > self.eps
         output = np.where(dynamic, 2.0 * (array - self.q01) / self.scale - 1.0, 0.0)
         if clip:
@@ -81,6 +88,7 @@ class QuantileStats:
             raise ValueError("The final values dimension does not match the statistics dimension")
         if not np.isfinite(array).all():
             raise ValueError("values must not contain NaN or Inf")
+        # Use q01 as the stable inverse value for constant dimensions.
         dynamic = (self.q99 - self.q01) > self.eps
         output = np.where(dynamic, (array + 1.0) * 0.5 * self.scale + self.q01, self.q01)
         if dim_mask is not None:
@@ -99,7 +107,7 @@ class QuantileStats:
         target.write_text(json.dumps(self.to_dict(), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     @classmethod
-    def load(cls, path: str | Path) -> "QuantileStats":
+    def load(cls, path: str | Path) -> QuantileStats:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
         return cls(
             np.asarray(payload["q01"]),

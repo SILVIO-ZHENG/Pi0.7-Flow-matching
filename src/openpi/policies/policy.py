@@ -1,3 +1,5 @@
+"""Define the common OpenPI policy inference wrapper."""
+
 from collections.abc import Sequence
 import logging
 import pathlib
@@ -23,6 +25,8 @@ BasePolicy: TypeAlias = _base_policy.BasePolicy
 
 
 class Policy(BasePolicy):
+    """Apply input transforms, run model inference, and decode robot actions."""
+
     def __init__(
         self,
         model: _model.BaseModel,
@@ -90,9 +94,7 @@ class Policy(BasePolicy):
         explicit_subtask = obs_without_guidance.pop("subtask", None)
         if explicit_subtask is not None:
             obs_without_guidance["g1_subtask"] = explicit_subtask
-        plan_subtask = bool(
-            obs_without_guidance.pop("plan_subtask", self._hierarchical_tokenizer is not None)
-        )
+        plan_subtask = bool(obs_without_guidance.pop("plan_subtask", self._hierarchical_tokenizer is not None))
         planner_start = time.monotonic()
         planned_subtask = obs_without_guidance.get("g1_subtask")
         if plan_subtask and self._hierarchical_tokenizer is not None and planned_subtask is None:
@@ -189,7 +191,9 @@ class Policy(BasePolicy):
         tokens = np.asarray(sequence[0].detach().cpu(), dtype=np.int32)
         subtask = self._hierarchical_tokenizer.extract_subtask(tokens)
         if subtask is None:
-            logging.warning("Hierarchical planner did not emit a parseable `Subtask:` field; using the task prompt only.")
+            logging.warning(
+                "Hierarchical planner did not emit a parseable `Subtask:` field; using the task prompt only."
+            )
         return subtask
 
     def _prepare_rtc_prefix(self, obs: dict, rtc_prefix: dict | None) -> dict[str, Any]:
@@ -221,7 +225,7 @@ class Policy(BasePolicy):
             )
 
         raw_delay = rtc_prefix.get("delay", rtc_prefix.get("prefix_steps"))
-        if isinstance(raw_delay, bool) or not isinstance(raw_delay, (int, np.integer)):
+        if isinstance(raw_delay, bool) or not isinstance(raw_delay, int | np.integer):
             raise ValueError("rtc_prefix delay/prefix_steps must be an integer")
         delay = int(raw_delay)
         if not 0 <= delay <= model_horizon:
@@ -249,7 +253,9 @@ class Policy(BasePolicy):
                 raise ValueError("A one-dimensional RTC weights array must match the target action horizon")
             weights = np.repeat(weights[:, None], target_actions.shape[-1], axis=-1)
         if weights.shape != target_actions.shape:
-            raise ValueError(f"RTC weights shape {weights.shape} must equal target_actions shape {target_actions.shape}")
+            raise ValueError(
+                f"RTC weights shape {weights.shape} must equal target_actions shape {target_actions.shape}"
+            )
         if not np.isfinite(weights).all() or np.any(weights < 0):
             raise ValueError("RTC weights must be finite and non-negative")
         beta = float(rtc_guidance.get("beta", 0.0))

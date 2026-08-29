@@ -1,3 +1,5 @@
+"""Validate Pi0 model initialization, loss, and sampling."""
+
 import flax.nnx as nnx
 import jax
 

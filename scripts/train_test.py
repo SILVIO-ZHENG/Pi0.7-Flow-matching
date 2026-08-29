@@ -1,3 +1,5 @@
+"""Smoke tests for training-script configuration and import behavior."""
+
 import dataclasses
 import os
 import pathlib

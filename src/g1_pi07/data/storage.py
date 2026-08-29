@@ -8,7 +8,8 @@ Raw ROS topics should additionally be recorded with the MCAP launch file under
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from dataclasses import field
 import json
 from pathlib import Path
 from typing import Any
@@ -21,12 +22,20 @@ from g1_pi07.joints import DEFAULT_LAYOUT
 
 @dataclass
 class EpisodeWriter:
+    """Accumulate one aligned episode and persist Parquet, video, and metadata.
+
+    Rows and camera frames stay in lockstep in memory. ``finalize`` refuses
+    mismatched stream lengths so the stored frame index remains deterministic.
+    """
+
     output_root: Path
     episode_id: str
     fps: float = 20.0
     task: str = ""
     subtask: str = ""
+    # Each row is keyed by the action timestamp, the canonical episode clock.
     rows: list[dict[str, Any]] = field(default_factory=list)
+    # Camera lists must contain exactly one frame for every row.
     videos: dict[str, list[np.ndarray]] = field(
         default_factory=lambda: {"head": [], "left_wrist": [], "right_wrist": []}
     )
@@ -57,6 +66,7 @@ class EpisodeWriter:
         for name, frame in step.cameras.items():
             if self.videos[name] and frame.rgb.shape != self.videos[name][0].shape:
                 raise ValueError(f"{name} camera resolution changed within the episode")
+        # Training consumes only the 28 arm/hand joints from the 43-DoF state.
         policy_state = DEFAULT_LAYOUT.full_to_policy(step.state.q)
         target_action = DEFAULT_LAYOUT.full_to_policy(step.action.position)
         if applied_policy_action is None:
@@ -75,9 +85,7 @@ class EpisodeWriter:
                 "state_timestamp_ns": step.state.timestamp_ns,
                 "source_state_sequence": step.action.source_state_sequence,
                 "state_delta_ns": step.state_delta_ns,
-                "camera_timestamp_ns": {
-                    name: frame.timestamp_ns for name, frame in step.cameras.items()
-                },
+                "camera_timestamp_ns": {name: frame.timestamp_ns for name, frame in step.cameras.items()},
                 "camera_delta_ns": dict(step.camera_delta_ns),
                 "q": step.state.q.tolist(),
                 "dq": step.state.dq.tolist(),
