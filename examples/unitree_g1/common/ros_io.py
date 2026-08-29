@@ -146,7 +146,7 @@ class G1RosIO:
         policy = np.clip(policy, self._layout.lower_limits, self._layout.upper_limits)
         if not self._args.enable_robot_commands:
             self._node.get_logger().warning(
-                "dry-run: action computed but robot publishing is disabled",
+                "action computed; robot publishing is disabled by configuration",
                 throttle_duration_sec=2.0,
             )
             return

@@ -10,7 +10,7 @@ For action horizon `H=50`, inference delay `d` control steps, and a desired exec
 d <= H - s
 ```
 
-The current training configuration uses `s=25` and samples `d` in `[0,25]`. A real deployment should derive this distribution from measured logs rather than assuming 25 is universally optimal.
+The current training configuration uses `s=25` and samples `d` in `[0,25]`; the distribution is configurable from measured deployment logs.
 
 ## Training
 
@@ -49,5 +49,3 @@ Offline replay should report inference delay in control steps, first- and second
 uv run python examples/unitree_g1/eval/simulate_rtc_replay.py
 uv run pytest examples/unitree_g1/rtc/rtc_chunker_test.py -q
 ```
-
-The repository validates scheduler and hard-prefix code paths. It does not establish success on a specific physical G1 task.
